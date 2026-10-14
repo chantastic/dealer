@@ -201,7 +201,7 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
     }
 
     @objc private func revealRules() {
-        try? router.engine.ensureRulesFile()
+        _ = try? router.engine.ensureRulesFile()
         NSWorkspace.shared.activateFileViewerSelecting([router.rulesURL])
     }
 
