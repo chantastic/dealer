@@ -1,0 +1,29 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  macos:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test
+        run: swift test
+      - name: Build Earl.app
+        run: make app
+      - name: Check bundle
+        run: |
+          plutil -lint build/Earl.app/Contents/Info.plist
+          codesign --verify --verbose build/Earl.app
+          build/earlctl --help
+
+  linux:
+    runs-on: ubuntu-latest
+    container: swift:6.0
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test
+        run: swift test
