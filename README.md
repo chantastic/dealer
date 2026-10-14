@@ -227,9 +227,9 @@ Commands: `route`, `open` (route and launch), `profiles`, `check` (exits 1 if th
 - **Profiles.** Earl parses `~/Library/Application Support/Google/Chrome/Local State`
   (`profile.info_cache`, ordered by `profile.profiles_order`) and skips the guest, system, and
   ephemeral profiles.
-- **Logging.** Earl logs through `os.Logger` with subsystem `io.github.chantastic.earl`. URLs are
-  logged as private. To watch the log:
-  `log stream --predicate 'subsystem == "io.github.chantastic.earl"' --info`.
+- **Logging.** Earl logs through `os.Logger` with subsystem `dev.chan.earl` (the bundle ID).
+  URLs are logged as private. To watch the log:
+  `log stream --predicate 'subsystem == "dev.chan.earl"' --info`.
 
 ## Signing and notarization
 

@@ -9,7 +9,7 @@
 	<key>CFBundleExecutable</key>
 	<string>Earl</string>
 	<key>CFBundleIdentifier</key>
-	<string>io.github.chantastic.earl</string>
+	<string>dev.chan.earl</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>

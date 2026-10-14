@@ -15,7 +15,7 @@ final class RoutingController {
     let engine = Engine()
     private(set) var recent: [RoutedLink] = []
     private var monitor: FileChangeMonitor?
-    private let log = Logger(subsystem: Bundle.main.bundleIdentifier ?? "Earl", category: "routing")
+    private let log = Logger(subsystem: Bundle.main.bundleIdentifier ?? "dev.chan.earl", category: "routing")
 
     /// Called on the main queue whenever rules are reloaded or a link is routed.
     var onChange: (() -> Void)?

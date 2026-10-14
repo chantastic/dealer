@@ -17,6 +17,7 @@ jobs:
       - name: Check bundle
         run: |
           plutil -lint build/Earl.app/Contents/Info.plist
+          test "$(plutil -extract CFBundleIdentifier raw build/Earl.app/Contents/Info.plist)" = "dev.chan.earl"
           codesign --verify --verbose build/Earl.app
           build/earlctl --help
 
