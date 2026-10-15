@@ -38,7 +38,11 @@ Use `make install PREFIX=/Applications` to install for all users. `make uninstal
 remember to pick another default browser first.
 
 The first time Earl starts, it creates `~/.config/earl/rules.json`. This starter file lists the
-Chrome profiles Earl found and sends everything to your first profile until you add rules.
+Chrome profiles Earl found and sends everything to your first profile until you add rules. It also
+includes a rule that sends `workos.cloud` and all its subdomains to your WorkOS profile. The rule is
+active if Earl finds a profile whose name or email contains "workos", and commented out otherwise.
+An existing `rules.json` is never overwritten, so to get this rule on an existing install, copy the
+`WorkOS` rule from the [example below](#rules) into your file.
 
 > Earl is ad-hoc signed when you build it yourself. Since you built it on this Mac, Gatekeeper
 > should open it normally. If you copy the app to another Mac, see
@@ -94,6 +98,12 @@ The file is JSON, but `//` and `/* */` comments and trailing commas are allowed.
   "defaultProfile": "Personal",
 
   "rules": [
+    {
+      // workos.cloud, video.workos.cloud, mcp.workos.cloud, …
+      "name": "WorkOS",
+      "hosts": ["*.workos.cloud"],
+      "profile": "WorkOS"
+    },
     {
       "name": "Client: Initech",
       "urls": ["github.com/initech/*", "https://docs.google.com/*authuser=me@initech.com*"],

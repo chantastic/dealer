@@ -64,6 +64,18 @@ public enum RulesLoader {
             : profiles.map { "//   \"\($0.name)\"  →  directory \"\($0.directory)\"\($0.email.map { ", \($0)" } ?? "")" }
                 .joined(separator: "\n")
         let example = profiles.count > 1 ? profiles[1].name : fallback
+        let workOS = profiles.first { profile in
+            [profile.name, profile.email ?? ""].contains { $0.localizedCaseInsensitiveContains("workos") }
+        }
+        let workOSRule = [
+            "{",
+            "  \"name\": \"WorkOS\",",
+            "  \"hosts\": [\"*.workos.cloud\"],",
+            "  \"profile\": \(jsonString(workOS?.name ?? "WorkOS"))",
+            "},",
+        ]
+        .map { "    " + (workOS == nil ? "// " : "") + $0 }
+        .joined(separator: "\n")
 
         return """
         // Earl routing rules. Earl re-reads this file whenever it changes.
@@ -82,6 +94,11 @@ public enum RulesLoader {
           "defaultProfile": \(jsonString(fallback)),
 
           "rules": [
+            // workos.cloud and all of its subdomains (video.workos.cloud, mcp.workos.cloud, …).
+            // "*.workos.cloud" also matches the bare domain. Add hosts to the list to send them to
+            // the same profile, or copy the block to route other hosts to another profile.
+        \(workOSRule)
+
             // {
             //   "name": "Work",
             //   "hosts": ["*.atlassian.net", "*.corp.example.com"],

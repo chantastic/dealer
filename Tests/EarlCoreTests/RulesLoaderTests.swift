@@ -107,6 +107,37 @@ final class RulesLoaderTests: XCTestCase {
         let rules = try RulesLoader.decode(Data(RulesLoader.starterTemplate(profiles: []).utf8))
         XCTAssertEqual(rules.defaultProfile, "Default")
     }
+
+    func testStarterTemplateRoutesWorkOSCloudToDetectedWorkOSProfile() throws {
+        let profiles = [
+            ChromeProfile(directory: "Default", name: "Personal"),
+            ChromeProfile(directory: "Profile 3", name: "WorkOS", email: "me@workos.com"),
+        ]
+        let rules = try RulesLoader.decode(Data(RulesLoader.starterTemplate(profiles: profiles).utf8))
+        XCTAssertEqual(rules.rules, [Rule(name: "WorkOS", hosts: ["*.workos.cloud"], profile: "WorkOS")])
+
+        let router = Router(ruleSet: rules)
+        for link in ["https://workos.cloud", "https://video.workos.cloud/x", "https://mcp.workos.cloud/sse"] {
+            XCTAssertEqual(router.route(URL(string: link)!, profiles: profiles).profileDirectory, "Profile 3", link)
+        }
+        XCTAssertEqual(router.route(URL(string: "https://notworkos.cloud")!, profiles: profiles).profileDirectory, "Default")
+    }
+
+    func testStarterTemplateDetectsWorkOSProfileByEmail() throws {
+        let profiles = [
+            ChromeProfile(directory: "Default", name: "Personal"),
+            ChromeProfile(directory: "Profile 1", name: "Work", email: "me@workos.com"),
+        ]
+        let rules = try RulesLoader.decode(Data(RulesLoader.starterTemplate(profiles: profiles).utf8))
+        XCTAssertEqual(rules.rules.map(\.profile), ["Work"])
+    }
+
+    func testStarterTemplateCommentsOutWorkOSRuleWithoutWorkOSProfile() throws {
+        let profiles = [ChromeProfile(directory: "Default", name: "Personal")]
+        let text = RulesLoader.starterTemplate(profiles: profiles)
+        XCTAssertEqual(try RulesLoader.decode(Data(text.utf8)).rules, [])
+        XCTAssertTrue(text.contains(#"//   "hosts": ["*.workos.cloud"],"#))
+    }
 }
 
 final class PathsTests: XCTestCase {
