@@ -8,6 +8,10 @@ Commands:
   route <url>...   Show which Chrome profile each URL would open in (no side effects)
   open <url>...    Route each URL and open it in Chrome (macOS)
   profiles         List Chrome profiles found in Local State
+  profiles --manage [--dry-run]
+                   Open Chrome's profile picker (via AppleScript; macOS asks to allow
+                   your terminal to control Chrome the first time). --dry-run prints
+                   the AppleScript instead of running it.
   check            Validate the rules file and report problems
   init             Write a starter rules file if none exists
   edit             Open the rules file in the "editor" from rules.json, or the default
@@ -166,7 +170,27 @@ case "edit":
     print(fallback.shellString)
     exit(runAndWait(fallback) == nil ? 0 : 1)
 
+case "profiles" where options.arguments.first == "--manage":
+    let dryRun = options.arguments.dropFirst() == ["--dry-run"]
+    guard options.arguments.count == 1 || dryRun else { fail("usage: deal profiles --manage [--dry-run]", code: 64) }
+    loadRulesOrExit()
+    let command = engine.manageProfilesCommand()
+    if dryRun {
+        // The AppleScript source, one line per `-e`, suitable for `osacompile`.
+        for (flag, line) in zip(command.arguments, command.arguments.dropFirst()) where flag == "-e" {
+            print(line)
+        }
+        exit(0)
+    }
+    print(command.shellString)
+    guard let error = runAndWait(command) else { exit(0) }
+    if ProfileManagerLauncher.isAutomationDenied(error) {
+        fail("not allowed to control the browser. Allow your terminal under System Settings → Privacy & Security → Automation, then retry.")
+    }
+    fail(String(describing: error))
+
 case "profiles":
+    guard options.arguments.isEmpty else { fail("profiles takes no arguments other than --manage", code: 64) }
     loadRulesOrExit()
     let profiles = loadProfiles()
     if profiles.isEmpty { exit(1) }

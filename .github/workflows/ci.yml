@@ -18,8 +18,33 @@ jobs:
         run: |
           plutil -lint build/Dealer.app/Contents/Info.plist
           test "$(plutil -extract CFBundleIdentifier raw build/Dealer.app/Contents/Info.plist)" = "dev.chan.dealer"
+          plutil -extract NSAppleEventsUsageDescription raw build/Dealer.app/Contents/Info.plist
           codesign --verify --verbose build/Dealer.app
+          codesign -d --entitlements - build/Dealer.app 2>&1 | grep -q com.apple.security.automation.apple-events
           build/deal --help
+      - name: Compile the Manage Profiles AppleScript against Chrome's dictionary
+        run: |
+          ls -d "/Applications/Google Chrome.app"
+          build/deal profiles --manage --dry-run --rules "$RUNNER_TEMP/none.json" > "$RUNNER_TEMP/picker.applescript"
+          cat "$RUNNER_TEMP/picker.applescript"
+          osacompile -o "$RUNNER_TEMP/picker.scpt" "$RUNNER_TEMP/picker.applescript"
+      # Best effort: depends on the runner's Automation (TCC) grants and Chrome's first-run state.
+      - name: Open the profile picker in Chrome (experimental)
+        continue-on-error: true
+        timeout-minutes: 3
+        run: |
+          build/deal profiles --manage --rules "$RUNNER_TEMP/none.json"
+          sleep 8
+          osascript -e 'tell application "Google Chrome" to get {URL, title} of active tab of front window'
+          screencapture -x "$RUNNER_TEMP/profile-picker.png"
+      - name: Upload profile picker screenshot
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: profile-picker-screenshot
+          path: ${{ runner.temp }}/profile-picker.png
+          if-no-files-found: ignore
 
   linux:
     runs-on: ubuntu-latest

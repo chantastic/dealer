@@ -110,6 +110,24 @@ final class RoutingController {
         }
     }
 
+    /// Shows Chrome's profile picker, which lists every profile and lets the user add, edit,
+    /// or remove them. Needs macOS Automation permission for Dealer to control the browser.
+    func openProfileManager() {
+        CommandRunner.run(engine.manageProfilesCommand()) { [log] error in
+            guard let error else { return }
+            let message = String(describing: error)
+            log.error("\(message, privacy: .public)")
+            let denied = ProfileManagerLauncher.isAutomationDenied(error)
+            Task { @MainActor in
+                if denied {
+                    Alerts.showAutomationDenied()
+                } else {
+                    Alerts.show(title: "Couldn't open Chrome's profile manager", message: message)
+                }
+            }
+        }
+    }
+
     private func run(_ command: LaunchCommand, context: String) {
         CommandRunner.run(command) { [log] error in
             guard let error else { return }
@@ -138,6 +156,23 @@ enum Alerts {
         if alert.runModal() == .alertSecondButtonReturn, let copyText {
             NSPasteboard.general.clearContents()
             NSPasteboard.general.setString(copyText, forType: .string)
+        }
+    }
+
+    static func showAutomationDenied() {
+        NSApp.activate(ignoringOtherApps: true)
+        let alert = NSAlert()
+        alert.messageText = "Dealer isn't allowed to control Chrome"
+        alert.informativeText = """
+        Chrome only opens its profile manager when asked through AppleScript. \
+        Turn on Google Chrome under Dealer in System Settings → Privacy & Security → Automation, \
+        then choose Manage Profiles… again.
+        """
+        alert.addButton(withTitle: "Open Automation Settings")
+        alert.addButton(withTitle: "Cancel")
+        if alert.runModal() == .alertFirstButtonReturn,
+           let settings = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Automation") {
+            NSWorkspace.shared.open(settings)
         }
     }
 }

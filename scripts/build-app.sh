@@ -34,7 +34,7 @@ cp "$BIN_DIR/Dealer" "$APP/Contents/MacOS/Dealer"
 cp Resources/Info.plist "$APP/Contents/Info.plist"
 cp "$BIN_DIR/deal" build/deal
 
-codesign_flags=(--force --sign "$SIGN_IDENTITY")
+codesign_flags=(--force --sign "$SIGN_IDENTITY" --entitlements Resources/Dealer.entitlements)
 if [[ "$SIGN_IDENTITY" != "-" ]]; then
   codesign_flags+=(--options runtime --timestamp)
 fi

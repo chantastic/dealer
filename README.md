@@ -7,8 +7,8 @@ profile**: work links in your work profile, everything else in your personal one
 dealer at the table: every URL that comes in gets dealt to the right hand.
 
 Dealer lives in the menu bar (there's no Dock icon). From the menu you can see your detected Chrome
-profiles, open a new window in any of them, open or reload the rules file, check recent links, and
-set Dealer as the default browser.
+profiles, open a new window in any of them, open Chrome's profile manager, open or reload the
+rules file, check recent links, and set Dealer as the default browser.
 
 - [Install](#install)
 - [Build](#build)
@@ -181,6 +181,41 @@ app and `Local State`:
 }
 ```
 
+### Managing Chrome profiles
+
+**Manage Profiles…**, below the profile list in the menu, opens Chrome's profile picker
+(`chrome://profile-picker`). That's the "Manage Chrome profiles" screen listing every profile,
+where you can add, rename, or remove them. `deal profiles --manage` does the same from a terminal.
+After you add or rename a profile, reopen Dealer's menu and the list updates.
+
+Chrome won't accept that page as an ordinary link, so Dealer can't use `open`:
+
+- URLs passed on Chrome's command line (`--args chrome://…`) are dropped unless they're web URLs.
+  The only `chrome://` URL that gets through is exactly `chrome://settings/resetProfileSettings`.
+- URLs sent with `open -a "Google Chrome" <url>` are limited to http, https, and `about:blank`.
+- No command-line switch forces the profile picker to appear.
+
+Chrome's AppleScript `set URL` command is a navigation started by the browser itself, so it's
+allowed to open `chrome://` pages. Dealer runs this with `osascript`:
+
+```applescript
+tell application "Google Chrome"
+  activate
+  set pickerWindow to make new window
+  set URL of active tab of pickerWindow to "chrome://profile-picker"
+end tell
+```
+
+The first time, macOS asks whether Dealer may control Google Chrome. If you decline, the menu shows
+an alert with a button that opens *System Settings → Privacy & Security → Automation*, where you
+can turn it on later. For `deal profiles --manage`, macOS asks about your terminal app instead.
+
+If `browser` is set in `rules.json`, the script targets that app: `bundleIdentifier` becomes
+`application id "…"`, and `application` is used by name (an `.app` path is reduced to its name).
+This works with any Chromium browser that supports Chrome's AppleScript commands and the profile
+picker page; that's untested beyond Chrome. To see the exact script without running it, use
+`deal profiles --manage --dry-run`.
+
 ### Editing the rules file
 
 The menu's **Open Rules File** (and `deal edit`) open `rules.json` in a text editor. They never
@@ -223,7 +258,8 @@ Default	Personal  <me@gmail.com>
 Profile 2	Work  <me@acme.com>
 ```
 
-Commands: `route`, `open` (route and launch), `profiles`, `check` (exits 1 if there are warnings),
+Commands: `route`, `open` (route and launch), `profiles` (add `--manage` to open Chrome's
+[profile picker](#managing-chrome-profiles)), `check` (exits 1 if there are warnings),
 `init`, `edit` (open the rules file in your [editor](#editing-the-rules-file), creating it if
 needed), and `path`. Options: `--rules <path>` and `--local-state <path>`.
 
@@ -277,9 +313,12 @@ xcrun stapler staple build/Dealer.app
 ditto -c -k --keepParent build/Dealer.app build/Dealer.zip
 ```
 
-Dealer isn't sandboxed and doesn't need any special entitlements. It reads `~/.config/dealer` and
-Chrome's `Local State`, and it runs `/usr/bin/open`. Both would need rework to ship on the Mac App
-Store; that isn't a goal.
+Dealer isn't sandboxed. Its only entitlement is `com.apple.security.automation.apple-events`
+(`Resources/Dealer.entitlements`), which a hardened-runtime build needs so **Manage Profiles…** can
+send AppleScript to Chrome. `Info.plist` also has the `NSAppleEventsUsageDescription` text macOS
+shows when it asks for permission. Dealer reads `~/.config/dealer` and Chrome's `Local State`, and
+it runs `/usr/bin/open` and `/usr/bin/osascript`. Shipping on the Mac App Store would need rework,
+and that isn't a goal.
 
 ## Known limitations
 
@@ -302,6 +341,10 @@ Store; that isn't a goal.
   Services.
 - **Polling.** Rules-file changes are detected by checking the file once a second, which is cheap
   and robust to atomic saves, rather than being instant.
+- **Manage Profiles… needs Automation permission.** macOS ties that permission to the app's code
+  signature. An ad-hoc signed build gets a new signature on every rebuild, so after
+  `make install` macOS may ask again (or a stale entry in the Automation list may need toggling).
+  Developer ID builds don't have this problem.
 
 ### Verification status of this version
 

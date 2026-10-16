@@ -97,6 +97,11 @@ public final class Engine {
         EditorLauncher.command(opening: rulesURL, with: editor ?? editorSetting)
     }
 
+    /// Opens the configured browser's profile picker. See `ProfileManagerLauncher`.
+    public func manageProfilesCommand() -> LaunchCommand {
+        ProfileManagerLauncher.command(browser: ruleSet.browser)
+    }
+
     public func newWindowCommand(profileDirectory: String) -> LaunchCommand {
         ChromeLauncher.command(url: nil, profileDirectory: profileDirectory, browser: ruleSet.browser)
     }

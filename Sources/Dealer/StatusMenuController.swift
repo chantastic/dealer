@@ -86,6 +86,9 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
             copy.keyEquivalentModifierMask = .option
             menu.addItem(copy)
         }
+        let manage = item("Manage Profiles…", action: #selector(manageProfiles))
+        manage.toolTip = "Open Chrome's profile picker to add, edit, or remove profiles."
+        menu.addItem(manage)
 
         if !router.recent.isEmpty {
             menu.addItem(.separator())
@@ -174,6 +177,10 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
     @objc private func openProfile(_ sender: NSMenuItem) {
         guard let directory = sender.representedObject as? String else { return }
         router.openNewWindow(profileDirectory: directory)
+    }
+
+    @objc private func manageProfiles() {
+        router.openProfileManager()
     }
 
     @objc private func copyDirectory(_ sender: NSMenuItem) {
