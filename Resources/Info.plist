@@ -5,15 +5,15 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
-	<string>Earl</string>
+	<string>Dealer</string>
 	<key>CFBundleExecutable</key>
-	<string>Earl</string>
+	<string>Dealer</string>
 	<key>CFBundleIdentifier</key>
-	<string>dev.chan.earl</string>
+	<string>dev.chan.dealer</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>Earl</string>
+	<string>Dealer</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>

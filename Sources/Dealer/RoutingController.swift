@@ -1,5 +1,5 @@
 import AppKit
-import EarlCore
+import DealerCore
 import os
 
 struct RoutedLink {
@@ -12,10 +12,10 @@ struct RoutedLink {
 /// App-side wrapper around `Engine`: watches the rules file, launches Chrome, and keeps a
 /// short history for the menu.
 final class RoutingController {
-    let engine = Engine()
+    let engine = Engine(legacyRulesURL: Paths.legacyRulesFile())
     private(set) var recent: [RoutedLink] = []
     private var monitor: FileChangeMonitor?
-    private let log = Logger(subsystem: Bundle.main.bundleIdentifier ?? "dev.chan.earl", category: "routing")
+    private let log = Logger(subsystem: Bundle.main.bundleIdentifier ?? "dev.chan.dealer", category: "routing")
 
     /// Called on the main queue whenever rules are reloaded or a link is routed.
     var onChange: (() -> Void)?
@@ -24,7 +24,9 @@ final class RoutingController {
 
     func start() {
         do {
-            if try engine.ensureRulesFile() {
+            if try engine.migrateLegacyRulesIfNeeded() {
+                log.notice("Copied rules from \(self.engine.legacyRulesURL?.path ?? "", privacy: .public) to \(self.rulesURL.path, privacy: .public)")
+            } else if try engine.ensureRulesFile() {
                 log.info("Created starter rules at \(self.rulesURL.path, privacy: .public)")
             }
         } catch {
@@ -87,7 +89,7 @@ final class RoutingController {
             let message = String(describing: error)
             Task { @MainActor in
                 Alerts.show(
-                    title: "Earl couldn't open Chrome",
+                    title: "Dealer couldn't open Chrome",
                     message: "\(message)\n\n\(context)",
                     copyText: context
                 )

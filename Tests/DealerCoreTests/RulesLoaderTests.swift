@@ -1,5 +1,5 @@
 import XCTest
-@testable import EarlCore
+@testable import DealerCore
 
 final class RulesLoaderTests: XCTestCase {
     private var directory: URL!
@@ -92,7 +92,7 @@ final class RulesLoaderTests: XCTestCase {
             ChromeProfile(directory: "Default", name: "Personal \"Main\"", email: "me@gmail.com"),
             ChromeProfile(directory: "Profile 2", name: "Work"),
         ]
-        let url = directory.appendingPathComponent("nested/earl/rules.json")
+        let url = directory.appendingPathComponent("nested/dealer/rules.json")
         XCTAssertTrue(try RulesLoader.writeStarterIfMissing(at: url, profiles: profiles))
         XCTAssertFalse(try RulesLoader.writeStarterIfMissing(at: url, profiles: profiles))
 
@@ -113,13 +113,18 @@ final class PathsTests: XCTestCase {
     private let home = URL(fileURLWithPath: "/Users/jane")
 
     func testRulesFilePriority() {
-        XCTAssertEqual(Paths.rulesFile(environment: [:], home: home).path, "/Users/jane/.config/earl/rules.json")
-        XCTAssertEqual(Paths.rulesFile(environment: ["XDG_CONFIG_HOME": "/cfg"], home: home).path, "/cfg/earl/rules.json")
+        XCTAssertEqual(Paths.rulesFile(environment: [:], home: home).path, "/Users/jane/.config/dealer/rules.json")
+        XCTAssertEqual(Paths.rulesFile(environment: ["XDG_CONFIG_HOME": "/cfg"], home: home).path, "/cfg/dealer/rules.json")
         XCTAssertEqual(
-            Paths.rulesFile(environment: ["XDG_CONFIG_HOME": "/cfg", "EARL_RULES": "~/my-rules.json"], home: home).path,
+            Paths.rulesFile(environment: ["XDG_CONFIG_HOME": "/cfg", "DEALER_RULES": "~/my-rules.json"], home: home).path,
             "/Users/jane/my-rules.json"
         )
-        XCTAssertEqual(Paths.rulesFile(environment: ["EARL_RULES": ""], home: home).path, "/Users/jane/.config/earl/rules.json")
+        XCTAssertEqual(Paths.rulesFile(environment: ["DEALER_RULES": ""], home: home).path, "/Users/jane/.config/dealer/rules.json")
+    }
+
+    func testLegacyRulesFile() {
+        XCTAssertEqual(Paths.legacyRulesFile(environment: [:], home: home).path, "/Users/jane/.config/earl/rules.json")
+        XCTAssertEqual(Paths.legacyRulesFile(environment: ["XDG_CONFIG_HOME": "/cfg", "DEALER_RULES": "/x.json"], home: home).path, "/cfg/earl/rules.json")
     }
 
     func testExpandTilde() {

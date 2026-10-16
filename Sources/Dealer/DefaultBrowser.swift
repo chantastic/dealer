@@ -15,17 +15,17 @@ enum DefaultBrowser {
             .replacingOccurrences(of: ".app", with: "")
     }
 
-    static var isEarlDefault: Bool {
+    static var isDealerDefault: Bool {
         guard let handler = currentHandler, let ours = Bundle.main.bundleIdentifier else { return false }
         return Bundle(url: handler)?.bundleIdentifier == ours
     }
 
-    /// Asks macOS to make Earl the handler for http and https. macOS shows its own
+    /// Asks macOS to make Dealer the handler for http and https. macOS shows its own
     /// confirmation dialog and throws if the user declines.
-    static func makeEarlDefault() async throws {
+    static func makeDealerDefault() async throws {
         guard Bundle.main.bundleIdentifier != nil else {
-            throw NSError(domain: "Earl", code: 1, userInfo: [
-                NSLocalizedDescriptionKey: "Earl must be run from Earl.app (see `make app`) to become the default browser.",
+            throw NSError(domain: "Dealer", code: 1, userInfo: [
+                NSLocalizedDescriptionKey: "Dealer must be run from Dealer.app (see `make app`) to become the default browser.",
             ])
         }
         let appURL = Bundle.main.bundleURL

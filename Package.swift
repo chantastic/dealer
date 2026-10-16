@@ -2,25 +2,25 @@
 import PackageDescription
 
 var products: [Product] = [
-    .library(name: "EarlCore", targets: ["EarlCore"]),
-    .executable(name: "earlctl", targets: ["earlctl"]),
+    .library(name: "DealerCore", targets: ["DealerCore"]),
+    .executable(name: "deal", targets: ["deal"]),
 ]
 
 var targets: [Target] = [
-    .target(name: "EarlCore"),
-    .executableTarget(name: "earlctl", dependencies: ["EarlCore"]),
-    .testTarget(name: "EarlCoreTests", dependencies: ["EarlCore"]),
+    .target(name: "DealerCore"),
+    .executableTarget(name: "deal", dependencies: ["DealerCore"]),
+    .testTarget(name: "DealerCoreTests", dependencies: ["DealerCore"]),
 ]
 
 // The menu-bar app needs AppKit, so it only exists when building on macOS.
-// Everything it relies on lives in EarlCore, which builds and tests on Linux too.
+// Everything it relies on lives in DealerCore, which builds and tests on Linux too.
 #if os(macOS)
-products.append(.executable(name: "Earl", targets: ["Earl"]))
-targets.append(.executableTarget(name: "Earl", dependencies: ["EarlCore"]))
+products.append(.executable(name: "Dealer", targets: ["Dealer"]))
+targets.append(.executableTarget(name: "Dealer", dependencies: ["DealerCore"]))
 #endif
 
 let package = Package(
-    name: "Earl",
+    name: "Dealer",
     platforms: [.macOS(.v13)],
     products: products,
     targets: targets

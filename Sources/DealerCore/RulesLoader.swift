@@ -66,7 +66,7 @@ public enum RulesLoader {
         let example = profiles.count > 1 ? profiles[1].name : fallback
 
         return """
-        // Earl routing rules. Earl re-reads this file whenever it changes.
+        // Dealer routing rules. Dealer re-reads this file whenever it changes.
         // Comments and trailing commas are allowed.
         //
         // Rules are checked top to bottom; the first match wins. A rule matches if ANY of its

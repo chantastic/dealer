@@ -1,5 +1,5 @@
 import XCTest
-@testable import EarlCore
+@testable import DealerCore
 
 final class ChromeLauncherTests: XCTestCase {
     private let url = URL(string: "https://example.com/a?b=c&d=e")!
@@ -147,6 +147,34 @@ final class EngineTests: XCTestCase {
         let diagnostics = engine.diagnostics(profiles: engine.profiles().profiles)
         XCTAssertEqual(diagnostics.count, 2)
         XCTAssertTrue(diagnostics.contains { $0.contains("\"Nobody\"") })
+    }
+
+    func testMigratesLegacyRulesOnce() throws {
+        let legacy = directory.appendingPathComponent("earl/rules.json")
+        try FileManager.default.createDirectory(at: legacy.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try Data(#"{ "defaultProfile": "Work" }"#.utf8).write(to: legacy)
+        let destination = directory.appendingPathComponent("dealer/rules.json")
+        let engine = Engine(rulesURL: destination, legacyRulesURL: legacy)
+
+        XCTAssertTrue(try engine.ensureRulesFile())
+        XCTAssertTrue(FileManager.default.fileExists(atPath: legacy.path), "legacy file is copied, not moved")
+        XCTAssertTrue(engine.reload())
+        XCTAssertEqual(engine.ruleSet.defaultProfile, "Work")
+
+        try Data(#"{ "defaultProfile": "Changed" }"#.utf8).write(to: destination)
+        XCTAssertFalse(try engine.migrateLegacyRulesIfNeeded(), "an existing rules file is never overwritten")
+        XCTAssertFalse(try engine.ensureRulesFile())
+        engine.reload()
+        XCTAssertEqual(engine.ruleSet.defaultProfile, "Changed")
+    }
+
+    func testNoMigrationWithoutLegacyFile() throws {
+        let destination = directory.appendingPathComponent("dealer/rules.json")
+        let engine = Engine(rulesURL: destination, legacyRulesURL: directory.appendingPathComponent("earl/rules.json"))
+        XCTAssertFalse(try engine.migrateLegacyRulesIfNeeded())
+        XCTAssertFalse(FileManager.default.fileExists(atPath: destination.path))
+        XCTAssertTrue(try engine.ensureRulesFile(), "falls back to writing the starter file")
+        XCTAssertTrue(engine.reload())
     }
 
     func testEnsureRulesFileCreatesStarterOnce() throws {

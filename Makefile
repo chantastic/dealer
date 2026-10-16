@@ -14,14 +14,14 @@ app:
 
 install: app
 	mkdir -p "$(PREFIX)"
-	rm -rf "$(PREFIX)/Earl.app"
-	cp -R build/Earl.app "$(PREFIX)/Earl.app"
-	$(LSREGISTER) -f "$(PREFIX)/Earl.app"
-	@echo "Installed $(PREFIX)/Earl.app — open it, then choose \"Set Earl as Default Browser…\" from its menu."
+	rm -rf "$(PREFIX)/Dealer.app"
+	cp -R build/Dealer.app "$(PREFIX)/Dealer.app"
+	$(LSREGISTER) -f "$(PREFIX)/Dealer.app"
+	@echo "Installed $(PREFIX)/Dealer.app — open it, then choose \"Set Dealer as Default Browser…\" from its menu."
 
 uninstall:
-	-$(LSREGISTER) -u "$(PREFIX)/Earl.app"
-	rm -rf "$(PREFIX)/Earl.app"
+	-$(LSREGISTER) -u "$(PREFIX)/Dealer.app"
+	rm -rf "$(PREFIX)/Dealer.app"
 
 clean:
 	rm -rf .build build

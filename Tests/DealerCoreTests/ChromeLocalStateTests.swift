@@ -1,5 +1,5 @@
 import XCTest
-@testable import EarlCore
+@testable import DealerCore
 
 final class ChromeLocalStateTests: XCTestCase {
     /// Trimmed from a real macOS Chrome `Local State` (values anonymized).

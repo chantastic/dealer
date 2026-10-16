@@ -1,5 +1,5 @@
 import AppKit
-import EarlCore
+import DealerCore
 
 /// The menu-bar item. The menu is rebuilt each time it opens so profiles, rule status,
 /// and the default-browser check are always current.
@@ -14,10 +14,10 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         super.init()
 
         if let button = statusItem.button {
-            let image = NSImage(systemSymbolName: "arrow.triangle.branch", accessibilityDescription: "Earl")
+            let image = NSImage(systemSymbolName: "arrow.triangle.branch", accessibilityDescription: "Dealer")
             image?.isTemplate = true
             button.image = image
-            button.toolTip = "Earl"
+            button.toolTip = "Dealer"
         }
         menu.delegate = self
         menu.autoenablesItems = false
@@ -48,17 +48,17 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         let engine = router.engine
         let snapshot = router.profiles()
 
-        menu.addItem(header("Earl"))
+        menu.addItem(header("Dealer"))
         menu.addItem(statusLine(engine: engine, profiles: snapshot.profiles))
         if let error = engine.loadError {
             menu.addItem(disabled(Self.truncate(String(describing: error), to: 90), small: true))
         }
 
-        if DefaultBrowser.isEarlDefault {
-            menu.addItem(disabled("Earl is the default browser"))
+        if DefaultBrowser.isDealerDefault {
+            menu.addItem(disabled("Dealer is the default browser"))
         } else {
             menu.addItem(disabled("Default browser: \(DefaultBrowser.currentHandlerName)"))
-            menu.addItem(item("Set Earl as Default Browser…", action: #selector(makeDefault)))
+            menu.addItem(item("Set Dealer as Default Browser…", action: #selector(makeDefault)))
         }
 
         menu.addItem(.separator())
@@ -107,7 +107,7 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         menu.addItem(item("Reveal Rules in Finder", action: #selector(revealRules)))
         menu.addItem(item("Reload Rules", action: #selector(reloadRules), key: "r"))
         menu.addItem(.separator())
-        menu.addItem(item("Quit Earl", action: #selector(quit), key: "q"))
+        menu.addItem(item("Quit Dealer", action: #selector(quit), key: "q"))
     }
 
     private func statusLine(engine: Engine, profiles: [ChromeProfile]) -> NSMenuItem {
@@ -162,11 +162,11 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
     @objc private func makeDefault() {
         Task {
             do {
-                try await DefaultBrowser.makeEarlDefault()
+                try await DefaultBrowser.makeDealerDefault()
             } catch {
                 let nsError = error as NSError
                 if nsError.domain == NSCocoaErrorDomain && nsError.code == NSUserCancelledError { return }
-                Alerts.show(title: "Couldn't set Earl as the default browser", message: error.localizedDescription)
+                Alerts.show(title: "Couldn't set Dealer as the default browser", message: error.localizedDescription)
             }
         }
     }

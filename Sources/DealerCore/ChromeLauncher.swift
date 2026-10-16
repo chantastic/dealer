@@ -1,6 +1,6 @@
 import Foundation
 
-/// An external command, kept as data so it can be logged, shown in `earlctl`, and tested.
+/// An external command, kept as data so it can be logged, shown in `deal`, and tested.
 public struct LaunchCommand: Equatable, Sendable {
     public var executable: String
     public var arguments: [String]

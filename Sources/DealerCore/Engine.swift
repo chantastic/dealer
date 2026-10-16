@@ -8,9 +8,11 @@ public struct ProfileSnapshot {
 }
 
 /// Owns the current rules and turns incoming URLs into launch commands.
-/// Shared by the menu-bar app and `earlctl` so both route identically.
+/// Shared by the menu-bar app and `deal` so both route identically.
 public final class Engine {
     public let rulesURL: URL
+    /// A rules file from Earl (Dealer's former name) to adopt when `rulesURL` doesn't exist yet.
+    public let legacyRulesURL: URL?
     private let home: URL
     public private(set) var router: Router
     /// The error from the most recent load attempt, or `nil` if it succeeded.
@@ -19,8 +21,13 @@ public final class Engine {
     /// Whether `router` came from the rules file (as opposed to the empty initial state).
     public private(set) var hasLoadedRules = false
 
-    public init(rulesURL: URL = Paths.rulesFile(), home: URL = FileManager.default.homeDirectoryForCurrentUser) {
+    public init(
+        rulesURL: URL = Paths.rulesFile(),
+        legacyRulesURL: URL? = nil,
+        home: URL = FileManager.default.homeDirectoryForCurrentUser
+    ) {
         self.rulesURL = rulesURL
+        self.legacyRulesURL = legacyRulesURL
         self.home = home
         self.router = Router(ruleSet: RuleSet())
     }
@@ -42,10 +49,27 @@ public final class Engine {
         return false
     }
 
-    /// Creates a starter rules file (listing detected profiles) if none exists.
+    /// Copies the legacy (Earl) rules file to `rulesURL` if `rulesURL` doesn't exist and the
+    /// legacy file does. The legacy file is left in place. Returns `true` if a copy was made.
+    @discardableResult
+    public func migrateLegacyRulesIfNeeded() throws -> Bool {
+        let fileManager = FileManager.default
+        guard let legacy = legacyRulesURL,
+              legacy.standardizedFileURL != rulesURL.standardizedFileURL,
+              !fileManager.fileExists(atPath: rulesURL.path),
+              fileManager.fileExists(atPath: legacy.path)
+        else { return false }
+        try fileManager.createDirectory(at: rulesURL.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try fileManager.copyItem(at: legacy, to: rulesURL)
+        return true
+    }
+
+    /// Makes sure a rules file exists: migrates a legacy file if there is one, otherwise writes
+    /// a starter file listing the detected profiles. Returns `true` if a file was created.
     @discardableResult
     public func ensureRulesFile() throws -> Bool {
-        try RulesLoader.writeStarterIfMissing(at: rulesURL, profiles: profiles().profiles)
+        if try migrateLegacyRulesIfNeeded() { return true }
+        return try RulesLoader.writeStarterIfMissing(at: rulesURL, profiles: profiles().profiles)
     }
 
     public func profiles(localStateOverride: URL? = nil) -> ProfileSnapshot {

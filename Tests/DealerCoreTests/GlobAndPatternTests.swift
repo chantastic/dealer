@@ -1,5 +1,5 @@
 import XCTest
-@testable import EarlCore
+@testable import DealerCore
 
 final class GlobTests: XCTestCase {
     func testLiteralMatchIsCaseInsensitiveByDefault() {

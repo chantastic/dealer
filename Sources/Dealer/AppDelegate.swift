@@ -1,5 +1,5 @@
 import AppKit
-import EarlCore
+import DealerCore
 
 @main
 final class AppDelegate: NSObject, NSApplicationDelegate {
@@ -26,14 +26,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menuController = StatusMenuController(router: router)
     }
 
-    /// Receives http/https URLs (`kAEGetURL` Apple Events) and HTML files opened with Earl.
+    /// Receives http/https URLs (`kAEGetURL` Apple Events) and HTML files opened with Dealer.
     func application(_ application: NSApplication, open urls: [URL]) {
         for url in urls {
             router.open(url)
         }
     }
 
-    /// Double-clicking Earl.app while it's running pops the menu so it's discoverable.
+    /// Double-clicking Dealer.app while it's running pops the menu so it's discoverable.
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
         menuController?.showMenu()
         return false

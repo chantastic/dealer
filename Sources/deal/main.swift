@@ -1,8 +1,8 @@
-import EarlCore
+import DealerCore
 import Foundation
 
 let usage = """
-usage: earlctl <command> [options]
+usage: deal <command> [options]
 
 Commands:
   route <url>...   Show which Chrome profile each URL would open in (no side effects)
@@ -13,8 +13,8 @@ Commands:
   path             Print the rules file location
 
 Options:
-  --rules <path>        Rules file (default: $EARL_RULES, $XDG_CONFIG_HOME/earl/rules.json,
-                        or ~/.config/earl/rules.json)
+  --rules <path>        Rules file (default: $DEALER_RULES, $XDG_CONFIG_HOME/dealer/rules.json,
+                        or ~/.config/dealer/rules.json)
   --local-state <path>  Chrome Local State file (default: from rules, or Chrome's standard path)
   -h, --help            Show this help
 """
@@ -27,7 +27,7 @@ struct Options {
 }
 
 func fail(_ message: String, code: Int32 = 1) -> Never {
-    FileHandle.standardError.write(Data("earlctl: \(message)\n".utf8))
+    FileHandle.standardError.write(Data("deal: \(message)\n".utf8))
     exit(code)
 }
 
@@ -71,12 +71,23 @@ guard let command = options.command else {
 
 let rulesURL = options.rulesPath.map { URL(fileURLWithPath: Paths.expandTilde($0)) } ?? Paths.rulesFile()
 let localStateURL = options.localStatePath.map { URL(fileURLWithPath: Paths.expandTilde($0)) }
-let engine = Engine(rulesURL: rulesURL)
+let engine = Engine(rulesURL: rulesURL, legacyRulesURL: options.rulesPath == nil ? Paths.legacyRulesFile() : nil)
+
+func migrateLegacyRules() {
+    do {
+        if try engine.migrateLegacyRulesIfNeeded(), let legacy = engine.legacyRulesURL {
+            FileHandle.standardError.write(Data("deal: copied rules from \(legacy.path) to \(rulesURL.path)\n".utf8))
+        }
+    } catch {
+        FileHandle.standardError.write(Data("deal: couldn't migrate old rules: \(error.localizedDescription)\n".utf8))
+    }
+}
 
 func loadRulesOrExit() {
+    migrateLegacyRules()
     if !engine.reload(), let error = engine.loadError {
         if case .missing = error {
-            FileHandle.standardError.write(Data("earlctl: \(error) Using built-in defaults (no rules). Run `earlctl init` to create one.\n".utf8))
+            FileHandle.standardError.write(Data("deal: \(error) Using built-in defaults (no rules). Run `deal init` to create one.\n".utf8))
         } else {
             fail(String(describing: error))
         }
@@ -86,7 +97,7 @@ func loadRulesOrExit() {
 func loadProfiles() -> [ChromeProfile] {
     let snapshot = engine.profiles(localStateOverride: localStateURL)
     if let error = snapshot.error {
-        FileHandle.standardError.write(Data("earlctl: \(error)\n".utf8))
+        FileHandle.standardError.write(Data("deal: \(error)\n".utf8))
     }
     return snapshot.profiles
 }
@@ -124,6 +135,7 @@ case "path":
     print(rulesURL.path)
 
 case "init":
+    migrateLegacyRules()
     do {
         let created = try RulesLoader.writeStarterIfMissing(at: rulesURL, profiles: loadProfiles())
         print(created ? "Created \(rulesURL.path)" : "\(rulesURL.path) already exists")
@@ -159,12 +171,12 @@ case "route", "open":
         print(describe(decision))
         guard command == "open" else { continue }
         guard ChromeLauncher.canOpen(url) else {
-            FileHandle.standardError.write(Data("earlctl: refusing to open \(url.scheme ?? "") URL\n".utf8))
+            FileHandle.standardError.write(Data("deal: refusing to open \(url.scheme ?? "") URL\n".utf8))
             status = 1
             continue
         }
         if let error = runAndWait(engine.launchCommand(for: decision)) {
-            FileHandle.standardError.write(Data("earlctl: \(error)\n".utf8))
+            FileHandle.standardError.write(Data("deal: \(error)\n".utf8))
             status = 1
         }
     }
