@@ -8,6 +8,8 @@
 	<string>Dealer</string>
 	<key>CFBundleExecutable</key>
 	<string>Dealer</string>
+	<key>CFBundleIconFile</key>
+	<string>AppIcon</string>
 	<key>CFBundleIdentifier</key>
 	<string>dev.chan.dealer</string>
 	<key>CFBundleInfoDictionaryVersion</key>

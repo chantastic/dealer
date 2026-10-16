@@ -15,6 +15,7 @@ rules file, check recent links, and set Dealer as the default browser.
 - [Rules](#rules)
 - [`deal`](#deal)
 - [How it works](#how-it-works)
+- [Releasing](#releasing)
 - [Signing and notarization](#signing-and-notarization)
 - [Known limitations](#known-limitations)
 - [Roadmap](#roadmap)
@@ -22,30 +23,88 @@ rules file, check recent links, and set Dealer as the default browser.
 
 ## Install
 
-Requirements: macOS 13 Ventura or later, Google Chrome, and Xcode 15+ or the Command Line Tools
-(Swift 5.9+).
+Requirements: macOS 13 Ventura or later and Google Chrome. Dealer is a universal app, so it runs
+natively on Apple silicon and Intel Macs.
 
-```sh
-git clone https://github.com/chantastic/earl.git dealer
-cd dealer
-make install          # builds build/Dealer.app and copies it to ~/Applications
-open ~/Applications/Dealer.app
-```
-
-Then click the menu-bar icon (a branching arrow) and choose **Set Dealer as Default Browser…**.
-macOS will ask you to confirm. You can also choose Dealer under *System Settings → Desktop & Dock →
-Default web browser*.
-
-Use `make install PREFIX=/Applications` to install for all users. `make uninstall` removes Dealer;
-remember to pick another default browser first.
+1. Download **Dealer.dmg** from the
+   [latest release](https://github.com/chantastic/earl/releases/latest).
+2. Open it and drag **Dealer** onto the **Applications** shortcut.
+3. Open Dealer from Applications. A small visor icon appears in the menu bar; there's no
+   Dock icon.
+4. Click the visor and choose **Set Dealer as Default Browser…**. macOS will ask you to confirm.
+   You can also choose Dealer under *System Settings → Desktop & Dock → Default web browser*.
 
 The first time Dealer starts, it creates `~/.config/dealer/rules.json`. This starter file lists the
 Chrome profiles Dealer found and sends everything to your first profile until you add rules. (If
 you have rules from Earl, Dealer copies them instead; see [Formerly Earl](#formerly-earl).)
 
-> Dealer is ad-hoc signed when you build it yourself. Since you built it on this Mac, Gatekeeper
-> should open it normally. If you copy the app to another Mac, see
-> [Signing and notarization](#signing-and-notarization).
+Each release also has a `Dealer.zip` with the same app, and `SHA256SUMS.txt` with checksums.
+The `deal` command-line tool is inside the app; to put it on your PATH, run:
+
+```sh
+ln -s /Applications/Dealer.app/Contents/MacOS/deal /usr/local/bin/deal
+```
+
+### If macOS says Dealer "can't be opened"
+
+Releases are only signed with a Developer ID and notarized by Apple when the project's signing
+secrets are configured (see [Releasing](#releasing)). Otherwise the build is ad-hoc signed, and
+the release notes say so. On the first launch of an ad-hoc build, Gatekeeper shows *"Dealer"
+Not Opened* (or *"Apple could not verify…"*). To open it anyway, either:
+
+- Open **System Settings → Privacy & Security**, scroll to the message about Dealer, and click
+  **Open Anyway**. Then confirm with your password. You only need to do this once.
+- Or remove the quarantine flag in Terminal:
+  `xattr -dr com.apple.quarantine /Applications/Dealer.app`
+
+Only do this for a Dealer you downloaded from this repository's Releases page.
+
+### Build from source
+
+Requirements: Xcode 15+ or the Command Line Tools (Swift 5.9+).
+
+```sh
+git clone https://github.com/chantastic/earl.git dealer   # the repo keeps its original name
+cd dealer
+make install          # builds build/Dealer.app and copies it to ~/Applications
+open ~/Applications/Dealer.app
+```
+
+The clone gives you `main`, which has the latest code. To build a released version instead, check
+out its tag first, for example `git checkout v0.1.0`.
+
+Use `make install PREFIX=/Applications` to install for all users. `make uninstall` removes Dealer;
+remember to pick another default browser first. Gatekeeper doesn't block an app you built on the
+same Mac.
+
+### Homebrew (future)
+
+There's no Homebrew cask yet. Once releases are notarized, one could live in a tap such as
+`chantastic/homebrew-tap` as `Casks/dealer.rb`:
+
+```ruby
+cask "dealer" do
+  version "1.0.0"
+  sha256 "…" # from SHA256SUMS.txt (Dealer.dmg)
+
+  url "https://github.com/chantastic/earl/releases/download/v#{version}/Dealer.dmg"
+  name "Dealer"
+  desc "Deals links to the right Google Chrome profile"
+  homepage "https://github.com/chantastic/earl"
+
+  depends_on macos: ">= :ventura"
+
+  app "Dealer.app"
+  binary "#{appdir}/Dealer.app/Contents/MacOS/deal"
+
+  zap trash: "~/.config/dealer"
+end
+```
+
+Then installing would be `brew install --cask chantastic/tap/dealer`. This should wait for
+notarized releases. Homebrew's main cask repository is phasing out apps that don't pass
+Gatekeeper, and even from a personal tap an unnotarized app would hit the same first-launch
+prompt.
 
 ## Build
 
@@ -54,7 +113,16 @@ swift build            # builds DealerCore, deal, and (on macOS) the Dealer exec
 swift test             # runs the unit tests (also works on Linux)
 make app               # assembles and ad-hoc signs build/Dealer.app (macOS only)
 UNIVERSAL=1 make app   # arm64 + x86_64 (requires full Xcode)
+make dmg               # build/Dealer.dmg: Dealer.app plus an Applications shortcut
+make zip               # build/Dealer.zip
+make package           # what a release ships: universal app, zip, dmg, SHA256SUMS.txt
+make icons             # regenerate the iconset and menu-bar PNGs (needs ImageMagick, rsvg-convert)
 ```
+
+`make app` accepts `VERSION=1.2.3` and `BUILD_NUMBER=42`, which set `CFBundleShortVersionString`
+and `CFBundleVersion` in the built app's `Info.plist`. A leading `v` and a `-prerelease` suffix
+are dropped from `VERSION`, so `VERSION=v1.2.3-beta.1` gives `1.2.3`. Without them, the app keeps
+the values in `Resources/Info.plist`.
 
 SwiftPM builds a bare executable. `scripts/build-app.sh` wraps it into a `.app` bundle with
 `Resources/Info.plist` (that's what declares the http/https URL types and `LSUIElement`). To work
@@ -70,6 +138,10 @@ Layout:
 | `Sources/deal` | A CLI that uses the same engine, for testing rules. |
 | `Tests/DealerCoreTests` | XCTest suite for `DealerCore`. |
 | `Resources/Info.plist` | Bundle metadata, URL schemes, and document types. |
+| `Resources/Icon/AppIcon-1024.png` | The app icon's source of truth: a 1024px PNG with a transparent background and the tile on Apple's 824px icon grid. It's produced from `AppIcon-original.png` (the artwork as delivered) by `scripts/prepare-app-icon.sh`. |
+| `Assets/logo/menubar-template.svg` | Source of the menu-bar template image. |
+| `Resources/AppIcon.iconset`, `Resources/MenuBarIconTemplate*.png` | Generated by `scripts/generate-icons.sh` (`make icons`): every iconset size downscaled from `AppIcon-1024.png`, and the menu-bar PNGs rendered from the SVG. `build-app.sh` turns the iconset into `AppIcon.icns` with `iconutil`. |
+| `scripts/` | Bundling (`build-app.sh`), the disk image (`make-dmg.sh`), release packaging and checks (`package-release.sh`, `verify-package.sh`), notarization, and CI certificate import. |
 
 ## Rules
 
@@ -291,26 +363,56 @@ needed), and `path`. Options: `--rules <path>` and `--local-state <path>`.
   URLs are logged as private. To watch the log:
   `log stream --predicate 'subsystem == "dev.chan.dealer"' --info`.
 
+## Releasing
+
+Push a tag to publish a release:
+
+```sh
+git tag v1.2.0 && git push origin v1.2.0      # or v1.2.0-beta.1 for a prerelease
+```
+
+`.github/workflows/release.yml` then does the following on a macOS runner:
+
+1. Runs the tests.
+2. Builds a universal (arm64 + x86_64) `Dealer.app`. The tag sets the version
+   (`CFBundleShortVersionString`, e.g. `1.2.0`) and the workflow run number sets the build
+   (`CFBundleVersion`).
+3. Signs and notarizes the app and the disk image when the secrets below are configured.
+4. Builds `Dealer.dmg`, `Dealer.zip`, and `SHA256SUMS.txt`, then checks them with
+   `scripts/verify-package.sh`.
+5. Creates the GitHub Release with generated notes and uploads the three files. A tag containing
+   `-` is marked as a prerelease. Re-running the workflow on an existing tag replaces the files.
+
+PR CI runs the same packaging script as a dry run (`VERSION=0.0.0-ci`, ad-hoc signed) and uploads
+the result as the `dealer-package` workflow artifact.
+
 ## Signing and notarization
 
 Signing isn't needed to build or run Dealer on your own Mac. `make app` ad-hoc signs the bundle
 (`codesign --sign -`), which is enough for an app you built locally.
 
-To distribute Dealer to other Macs without Gatekeeper warnings, it needs a Developer ID signature
-and notarization:
+To ship builds that open without Gatekeeper warnings, add these repository secrets (*Settings →
+Secrets and variables → Actions*). All of them are optional: without the certificate the release
+is ad-hoc signed, and without notarization credentials it's signed but not notarized.
+
+| Secret | Purpose |
+| --- | --- |
+| `MACOS_CERTIFICATE_P12_BASE64` | `base64 -i DeveloperID.p12` of your *Developer ID Application* certificate and private key |
+| `MACOS_CERTIFICATE_PASSWORD` | Password of that `.p12` |
+| `MACOS_SIGNING_IDENTITY` | Optional; defaults to the first *Developer ID Application* identity in the certificate |
+| `APPLE_API_KEY_P8_BASE64`, `APPLE_API_KEY_ID`, `APPLE_API_ISSUER_ID` | Notarization with an App Store Connect API key (preferred) |
+| `APPLE_ID`, `APPLE_TEAM_ID`, `APPLE_APP_SPECIFIC_PASSWORD` | Notarization with an Apple ID and an app-specific password, used if no API key is set |
+
+Signed builds use the hardened runtime and a secure timestamp. The embedded `deal` binary is
+signed before the app. The app is notarized and stapled first, then zipped and placed in the disk
+image, and finally the disk image is signed, notarized, and stapled.
+
+To do the same locally:
 
 ```sh
-# 1. Sign with your Developer ID (enables the hardened runtime and a secure timestamp).
-SIGN_IDENTITY="Developer ID Application: Your Name (TEAMID)" UNIVERSAL=1 make app
-
-# 2. Zip and submit to Apple's notary service (store credentials once with
-#    `xcrun notarytool store-credentials dealer-notary`).
-ditto -c -k --keepParent build/Dealer.app build/Dealer.zip
-xcrun notarytool submit build/Dealer.zip --keychain-profile dealer-notary --wait
-
-# 3. Staple the ticket so the app verifies offline, then re-zip for release.
-xcrun stapler staple build/Dealer.app
-ditto -c -k --keepParent build/Dealer.app build/Dealer.zip
+export SIGN_IDENTITY="Developer ID Application: Your Name (TEAMID)"
+export APPLE_ID=you@example.com APPLE_TEAM_ID=TEAMID APPLE_APP_SPECIFIC_PASSWORD=abcd-efgh-ijkl-mnop
+VERSION=1.2.0 BUILD_NUMBER=1 make package
 ```
 
 Dealer isn't sandboxed. Its only entitlement is `com.apple.security.automation.apple-events`
@@ -356,6 +458,17 @@ messages, launch command construction, and file watching. The AppKit target (`So
 `.github/workflows/ci.yml`. The interactive behavior hasn't been tested by hand on a Mac yet: the
 default-browser prompt, Launch Services delivering links, and Chrome switching profiles.
 
+The `macos` CI job also runs `make package` as a dry run and checks the result. It confirms the
+binaries are universal, `AppIcon.icns` was built with `iconutil`, the version is stamped, the
+signatures verify, and the mounted DMG contains `Dealer.app` and the Applications shortcut.
+Signing with a Developer ID and notarization have not been run, because they need secrets that
+aren't configured.
+
+For **Manage Profiles…**, CI compiles the AppleScript against the runner's Chrome. A live run got
+as far as macOS's Automation prompt, which named the process that launched `osascript`. That
+suggests the prompt names Dealer in normal use, but nobody could click it on a runner, so
+`chrome://profile-picker` opening in a tab is still unconfirmed.
+
 ## Roadmap
 
 - **Chrome extension for in-browser links (planned next).** A small Manifest V3 extension
@@ -387,5 +500,6 @@ Dealer was originally called Earl. If you ran an early build, here's what change
 - **The default browser doesn't carry over.** macOS treats the new bundle ID as a different app.
   Install `Dealer.app`, choose **Set Dealer as Default Browser…**, then delete `Earl.app`
   (`make uninstall` from an older checkout, or drag it to the Trash).
-- **The GitHub repository is still named `earl`** until it's renamed, which is why the clone
-  command above uses that URL.
+- **The GitHub repository is still named `earl`** (`github.com/chantastic/earl`), so clone, release,
+  and download URLs use that name. If the repository is renamed later, GitHub redirects the old
+  URLs.

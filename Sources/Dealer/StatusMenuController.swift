@@ -14,9 +14,16 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         super.init()
 
         if let button = statusItem.button {
-            let image = NSImage(systemSymbolName: "arrow.triangle.branch", accessibilityDescription: "Dealer")
-            image?.isTemplate = true
-            button.image = image
+            // MenuBarIconTemplate{,@2x}.png ship in Contents/Resources; running outside the
+            // app bundle (e.g. `swift run Dealer`) has no resources, so fall back to a title.
+            if let image = NSImage(named: "MenuBarIconTemplate") {
+                image.isTemplate = true
+                image.size = NSSize(width: 16, height: 16)
+                image.accessibilityDescription = "Dealer"
+                button.image = image
+            } else {
+                button.title = "Dealer"
+            }
             button.toolTip = "Dealer"
         }
         menu.delegate = self
@@ -48,7 +55,7 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         let engine = router.engine
         let snapshot = router.profiles()
 
-        menu.addItem(header("Dealer"))
+        menu.addItem(header(Self.versionTitle))
         menu.addItem(statusLine(engine: engine, profiles: snapshot.profiles))
         if let error = engine.loadError {
             menu.addItem(disabled(Self.truncate(String(describing: error), to: 90), small: true))
@@ -154,6 +161,13 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         let menuItem = NSMenuItem(title: title, action: action, keyEquivalent: key)
         menuItem.target = self
         return menuItem
+    }
+
+    private static var versionTitle: String {
+        guard let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String else {
+            return "Dealer"
+        }
+        return "Dealer \(version)"
     }
 
     private static func truncate(_ text: String, to length: Int) -> String {
