@@ -1,0 +1,81 @@
+name: Release
+
+# Push a tag like v1.2.3 (or v1.2.3-beta.1 for a prerelease) to build and publish a release.
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: macos-15
+    env:
+      TAG: ${{ github.ref_name }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Version from tag
+        run: |
+          version="${TAG#v}"
+          if [[ ! "$version" =~ ^[0-9]+(\.[0-9]+){0,2}(-[0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error::Tag $TAG isn't vMAJOR[.MINOR[.PATCH]][-prerelease]"
+            exit 1
+          fi
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+          echo "SHORT_VERSION=${version%%-*}" >> "$GITHUB_ENV"
+          echo "BUILD_NUMBER=${{ github.run_number }}" >> "$GITHUB_ENV"
+
+      - name: Test
+        run: swift test
+
+      # All signing and notarization secrets are optional. Without them the release is
+      # ad-hoc signed and not notarized, and the release notes say so.
+      - name: Import Developer ID certificate
+        env:
+          MACOS_CERTIFICATE_P12_BASE64: ${{ secrets.MACOS_CERTIFICATE_P12_BASE64 }}
+          MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+          MACOS_SIGNING_IDENTITY: ${{ secrets.MACOS_SIGNING_IDENTITY }}
+        run: scripts/import-signing-certificate.sh
+
+      - name: Build, sign, notarize, and package
+        env:
+          APPLE_API_KEY_P8_BASE64: ${{ secrets.APPLE_API_KEY_P8_BASE64 }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER_ID: ${{ secrets.APPLE_API_ISSUER_ID }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+        run: scripts/package-release.sh
+
+      - name: Verify package
+        env:
+          EXPECT_VERSION: ${{ env.SHORT_VERSION }}
+          EXPECT_BUILD: ${{ env.BUILD_NUMBER }}
+        run: scripts/verify-package.sh
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          flags=(--title "Dealer $VERSION" --generate-notes --verify-tag)
+          [[ "$VERSION" == *-* ]] && flags+=(--prerelease)
+          if [[ "$SIGN_IDENTITY" == "-" ]]; then
+            flags+=(--notes "This build is ad-hoc signed and not notarized, so macOS Gatekeeper will block the first launch. See the README's Install section for how to open it.")
+          else
+            flags+=(--notes "")
+          fi
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release $TAG exists; replacing its assets."
+          else
+            gh release create "$TAG" "${flags[@]}"
+          fi
+          gh release upload "$TAG" build/Dealer.dmg build/Dealer.zip build/SHA256SUMS.txt --clobber
+
+      - name: Remove signing keychain
+        if: always()
+        run: |
+          if [[ -n "${SIGNING_KEYCHAIN:-}" ]]; then
+            security delete-keychain "$SIGNING_KEYCHAIN" || true
+          fi

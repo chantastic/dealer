@@ -1,0 +1,63 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  macos:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test
+        run: swift test
+      - name: Build Dealer.app
+        run: make app
+      - name: Check bundle
+        run: |
+          plutil -lint build/Dealer.app/Contents/Info.plist
+          test "$(plutil -extract CFBundleIdentifier raw build/Dealer.app/Contents/Info.plist)" = "dev.chan.dealer"
+          plutil -extract NSAppleEventsUsageDescription raw build/Dealer.app/Contents/Info.plist
+          codesign --verify --verbose build/Dealer.app
+          codesign -d --entitlements - build/Dealer.app 2>&1 | grep -q com.apple.security.automation.apple-events
+          build/deal --help
+      # Same script as the release workflow, without signing secrets (ad-hoc, not notarized).
+      - name: Package (release dry run)
+        env:
+          VERSION: 0.0.0-ci
+          BUILD_NUMBER: ${{ github.run_number }}
+        run: make package
+      - name: Verify package
+        env:
+          EXPECT_VERSION: 0.0.0
+          EXPECT_BUILD: ${{ github.run_number }}
+        run: |
+          scripts/verify-package.sh
+          iconutil --convert iconset build/Dealer.app/Contents/Resources/AppIcon.icns --output build/AppIcon-from-icns.iconset
+          ls -l build/AppIcon-from-icns.iconset
+      - name: Upload package
+        uses: actions/upload-artifact@v4
+        with:
+          name: dealer-package
+          path: |
+            build/Dealer.dmg
+            build/Dealer.zip
+            build/SHA256SUMS.txt
+            build/AppIcon-from-icns.iconset
+      - name: Compile the Manage Profiles AppleScript against Chrome's dictionary
+        run: |
+          ls -d "/Applications/Google Chrome.app"
+          build/deal profiles --manage --dry-run --rules "$RUNNER_TEMP/none.json" > "$RUNNER_TEMP/picker.applescript"
+          cat "$RUNNER_TEMP/picker.applescript"
+          osacompile -o "$RUNNER_TEMP/picker.scpt" "$RUNNER_TEMP/picker.applescript"
+      # Actually running the script can't be tested here: macOS shows an Automation consent
+      # prompt ("… wants access to control Google Chrome") that nobody can click on a runner.
+
+  linux:
+    runs-on: ubuntu-latest
+    container: swift:6.0
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test
+        run: swift test
