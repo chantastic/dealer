@@ -27,7 +27,7 @@ Requirements: macOS 13 Ventura or later and Google Chrome. Dealer is a universal
 natively on Apple silicon and Intel Macs.
 
 1. Download **Dealer.dmg** from the
-   [latest release](https://github.com/chantastic/earl/releases/latest).
+   [latest release](https://github.com/chantastic/dealer/releases/latest).
 2. Open it and drag **Dealer** onto the **Applications** shortcut.
 3. Open Dealer from Applications. A small visor icon appears in the menu bar; there's no
    Dock icon.
@@ -64,7 +64,7 @@ Only do this for a Dealer you downloaded from this repository's Releases page.
 Requirements: Xcode 15+ or the Command Line Tools (Swift 5.9+).
 
 ```sh
-git clone https://github.com/chantastic/earl.git dealer   # the repo keeps its original name
+git clone https://github.com/chantastic/dealer.git
 cd dealer
 make install          # builds build/Dealer.app and copies it to ~/Applications
 open ~/Applications/Dealer.app
@@ -87,10 +87,10 @@ cask "dealer" do
   version "1.0.0"
   sha256 "…" # from SHA256SUMS.txt (Dealer.dmg)
 
-  url "https://github.com/chantastic/earl/releases/download/v#{version}/Dealer.dmg"
+  url "https://github.com/chantastic/dealer/releases/download/v#{version}/Dealer.dmg"
   name "Dealer"
   desc "Deals links to the right Google Chrome profile"
-  homepage "https://github.com/chantastic/earl"
+  homepage "https://github.com/chantastic/dealer"
 
   depends_on macos: ">= :ventura"
 
@@ -500,6 +500,7 @@ Dealer was originally called Earl. If you ran an early build, here's what change
 - **The default browser doesn't carry over.** macOS treats the new bundle ID as a different app.
   Install `Dealer.app`, choose **Set Dealer as Default Browser…**, then delete `Earl.app`
   (`make uninstall` from an older checkout, or drag it to the Trash).
-- **The GitHub repository is still named `earl`** (`github.com/chantastic/earl`), so clone, release,
-  and download URLs use that name. If the repository is renamed later, GitHub redirects the old
-  URLs.
+- **The GitHub repository moved** from `github.com/chantastic/earl` to
+  `github.com/chantastic/dealer`. GitHub redirects the old URLs, but you can point an existing
+  clone at the new name with
+  `git remote set-url origin https://github.com/chantastic/dealer.git`.
