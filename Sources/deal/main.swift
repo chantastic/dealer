@@ -10,6 +10,8 @@ Commands:
   profiles         List Chrome profiles found in Local State
   check            Validate the rules file and report problems
   init             Write a starter rules file if none exists
+  edit             Open the rules file in the "editor" from rules.json, or the default
+                   text editor (creates the file first if needed)
   path             Print the rules file location
 
 Options:
@@ -142,6 +144,27 @@ case "init":
     } catch {
         fail("couldn't create \(rulesURL.path): \(error.localizedDescription)")
     }
+
+case "edit":
+    migrateLegacyRules()
+    do {
+        try RulesLoader.writeStarterIfMissing(at: rulesURL, profiles: loadProfiles())
+    } catch {
+        fail("couldn't create \(rulesURL.path): \(error.localizedDescription)")
+    }
+    // A file that doesn't parse should still open; the editor then comes from defaults.
+    if !engine.reload(), let error = engine.loadError {
+        FileHandle.standardError.write(Data("deal: \(error)\n".utf8))
+    }
+    let command = engine.editRulesCommand()
+    print(command.shellString)
+    guard let error = runAndWait(command) else { exit(0) }
+    FileHandle.standardError.write(Data("deal: \(error)\n".utf8))
+    guard engine.editorSetting != .defaultTextEditor else { exit(1) }
+    let fallback = engine.editRulesCommand(with: .defaultTextEditor)
+    FileHandle.standardError.write(Data("deal: falling back to the default text editor\n".utf8))
+    print(fallback.shellString)
+    exit(runAndWait(fallback) == nil ? 0 : 1)
 
 case "profiles":
     loadRulesOrExit()

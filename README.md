@@ -96,6 +96,9 @@ The file is JSON, but `//` and `/* */` comments and trailing commas are allowed.
   // Where URLs go when no rule matches. Omit to use Chrome's last-used profile.
   "defaultProfile": "Personal",
 
+  // Optional: the app the menu's "Open Rules File" uses. See "Editing the rules file".
+  "editor": "Visual Studio Code",
+
   "rules": [
     {
       "name": "Client: Initech",
@@ -178,6 +181,23 @@ app and `Local State`:
 }
 ```
 
+### Editing the rules file
+
+The menu's **Open Rules File** (and `deal edit`) open `rules.json` in a text editor. They never
+use the app that owns `.json` files, because that can be anything; on some Macs it's Adobe After
+Effects. Set the optional top-level `editor` to pick the app:
+
+| `editor` value | Interpreted as | Runs |
+| --- | --- | --- |
+| *(unset or empty)* | The default text editor (the handler for `public.plain-text`; TextEdit unless you've changed it) | `open -t rules.json` |
+| `"com.microsoft.VSCode"` | A bundle ID: dots, no spaces or slashes, not ending in `.app` | `open -b com.microsoft.VSCode rules.json` |
+| `"Visual Studio Code"`, `"Zed.app"`, `"~/Applications/BBEdit.app"` | An app name or path | `open -a "Visual Studio Code" rules.json` |
+
+If the configured editor can't be launched (for example, it isn't installed), Dealer opens the file
+in the default text editor instead and shows an alert explaining why. Dealer uses the `editor`
+from the last rules that loaded successfully, so a file with a syntax error still opens in your
+editor. If the rules have never loaded, it uses the default text editor.
+
 ## `deal`
 
 `deal` uses the same engine as the app, so it's the quickest way to debug rules. `make app`
@@ -204,7 +224,8 @@ Profile 2	Work  <me@acme.com>
 ```
 
 Commands: `route`, `open` (route and launch), `profiles`, `check` (exits 1 if there are warnings),
-`init`, and `path`. Options: `--rules <path>` and `--local-state <path>`.
+`init`, `edit` (open the rules file in your [editor](#editing-the-rules-file), creating it if
+needed), and `path`. Options: `--rules <path>` and `--local-state <path>`.
 
 ## How it works
 

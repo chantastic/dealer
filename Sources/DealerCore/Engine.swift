@@ -89,6 +89,14 @@ public final class Engine {
         ChromeLauncher.command(url: decision.url, profileDirectory: decision.profileDirectory, browser: ruleSet.browser)
     }
 
+    /// From the most recently loaded rules, so a file that currently fails to parse still opens
+    /// in the editor it last named.
+    public var editorSetting: EditorSetting { EditorSetting(ruleSet.editor) }
+
+    public func editRulesCommand(with editor: EditorSetting? = nil) -> LaunchCommand {
+        EditorLauncher.command(opening: rulesURL, with: editor ?? editorSetting)
+    }
+
     public func newWindowCommand(profileDirectory: String) -> LaunchCommand {
         ChromeLauncher.command(url: nil, profileDirectory: profileDirectory, browser: ruleSet.browser)
     }

@@ -82,6 +82,34 @@ final class RoutingController {
         run(engine.newWindowCommand(profileDirectory: profileDirectory), context: profileDirectory)
     }
 
+    /// Opens the rules file in the configured `editor`, or the default text editor. If the
+    /// configured editor can't be launched, falls back to the default text editor and says why.
+    func openRulesForEditing() {
+        let setting = engine.editorSetting
+        let fallback = engine.editRulesCommand(with: .defaultTextEditor)
+        CommandRunner.run(engine.editRulesCommand()) { [log] error in
+            guard let error else { return }
+            let message = String(describing: error)
+            log.error("\(message, privacy: .public)")
+            guard setting != .defaultTextEditor else {
+                Task { @MainActor in
+                    Alerts.show(title: "Couldn't open the rules file", message: message)
+                }
+                return
+            }
+            CommandRunner.run(fallback) { fallbackError in
+                let detail = fallbackError.map { "\n\nThe default text editor also failed: \($0)" }
+                    ?? "\n\nOpened it in the default text editor instead."
+                Task { @MainActor in
+                    Alerts.show(
+                        title: "Couldn't open the rules file with the configured editor",
+                        message: "Check the \"editor\" setting in rules.json.\n\n\(message)\(detail)"
+                    )
+                }
+            }
+        }
+    }
+
     private func run(_ command: LaunchCommand, context: String) {
         CommandRunner.run(command) { [log] error in
             guard let error else { return }

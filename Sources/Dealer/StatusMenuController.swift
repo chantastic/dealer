@@ -188,16 +188,12 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
 
     @objc private func openRules() {
         do {
-            try router.engine.ensureRulesFile()
+            if try router.engine.ensureRulesFile() { router.reload() }
         } catch {
             Alerts.show(title: "Couldn't create the rules file", message: error.localizedDescription)
             return
         }
-        let workspace = NSWorkspace.shared
-        if !workspace.open(router.rulesURL),
-           let textEdit = workspace.urlForApplication(withBundleIdentifier: "com.apple.TextEdit") {
-            workspace.open([router.rulesURL], withApplicationAt: textEdit, configuration: NSWorkspace.OpenConfiguration())
-        }
+        router.openRulesForEditing()
     }
 
     @objc private func revealRules() {

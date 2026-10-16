@@ -8,17 +8,22 @@ public struct RuleSet: Codable, Equatable, Sendable {
     /// When omitted, unmatched URLs open in whichever profile Chrome used last.
     public var defaultProfile: String?
     public var browser: BrowserConfig?
+    /// App used by "Open Rules File" and `deal edit`: an app name, path, or bundle ID.
+    /// When omitted, the system's default text editor is used. See `EditorSetting`.
+    public var editor: String?
     public var rules: [Rule]
 
     public init(
         version: Int? = 1,
         defaultProfile: String? = nil,
         browser: BrowserConfig? = nil,
+        editor: String? = nil,
         rules: [Rule] = []
     ) {
         self.version = version
         self.defaultProfile = defaultProfile
         self.browser = browser
+        self.editor = editor
         self.rules = rules
     }
 
@@ -27,6 +32,7 @@ public struct RuleSet: Codable, Equatable, Sendable {
         version = try container.decodeIfPresent(Int.self, forKey: .version)
         defaultProfile = try container.decodeIfPresent(String.self, forKey: .defaultProfile)
         browser = try container.decodeIfPresent(BrowserConfig.self, forKey: .browser)
+        editor = try container.decodeIfPresent(String.self, forKey: .editor)
         rules = try container.decodeIfPresent([Rule].self, forKey: .rules) ?? []
     }
 }

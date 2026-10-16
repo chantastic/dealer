@@ -81,6 +81,10 @@ public enum RulesLoader {
           // Used when no rule matches. Remove it to use Chrome's last-used profile.
           "defaultProfile": \(jsonString(fallback)),
 
+          // App for the menu's "Open Rules File": an app name, path, or bundle ID.
+          // Remove it to use the default text editor (never the app that owns .json files).
+          // "editor": "Visual Studio Code",
+
           "rules": [
             // {
             //   "name": "Work",
