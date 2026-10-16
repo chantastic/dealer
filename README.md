@@ -64,11 +64,14 @@ Only do this for a Dealer you downloaded from this repository's Releases page.
 Requirements: Xcode 15+ or the Command Line Tools (Swift 5.9+).
 
 ```sh
-git clone https://github.com/chantastic/earl.git dealer
+git clone https://github.com/chantastic/earl.git dealer   # the repo keeps its original name
 cd dealer
 make install          # builds build/Dealer.app and copies it to ~/Applications
 open ~/Applications/Dealer.app
 ```
+
+The clone gives you `main`, which has the latest code. To build a released version instead, check
+out its tag first, for example `git checkout v0.1.0`.
 
 Use `make install PREFIX=/Applications` to install for all users. `make uninstall` removes Dealer;
 remember to pick another default browser first. Gatekeeper doesn't block an app you built on the
@@ -497,5 +500,6 @@ Dealer was originally called Earl. If you ran an early build, here's what change
 - **The default browser doesn't carry over.** macOS treats the new bundle ID as a different app.
   Install `Dealer.app`, choose **Set Dealer as Default Browser…**, then delete `Earl.app`
   (`make uninstall` from an older checkout, or drag it to the Trash).
-- **The GitHub repository is still named `earl`** until it's renamed, which is why the clone
-  command above uses that URL.
+- **The GitHub repository is still named `earl`** (`github.com/chantastic/earl`), so clone, release,
+  and download URLs use that name. If the repository is renamed later, GitHub redirects the old
+  URLs.
