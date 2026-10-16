@@ -47,6 +47,8 @@ jobs:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          # Optional alternative to committing SUPublicEDKey in Resources/Info.plist.
+          SPARKLE_PUBLIC_ED_KEY: ${{ vars.SPARKLE_PUBLIC_ED_KEY }}
         run: scripts/package-release.sh
 
       - name: Verify package
@@ -54,6 +56,31 @@ jobs:
           EXPECT_VERSION: ${{ env.SHORT_VERSION }}
           EXPECT_BUILD: ${{ env.BUILD_NUMBER }}
         run: scripts/verify-package.sh
+
+      # Skipped (with a notice) when the SPARKLE_PRIVATE_KEY secret isn't configured.
+      - name: Sparkle appcast
+        env:
+          SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          public_key="$(plutil -extract SUPublicEDKey raw build/Dealer.app/Contents/Info.plist 2>/dev/null || true)"
+          if [[ -n "$SPARKLE_PRIVATE_KEY" && -z "$public_key" ]]; then
+            echo "::warning::SPARKLE_PRIVATE_KEY is set but the app has no SUPublicEDKey, so it can't verify updates. Skipping the appcast; add the public key to Resources/Info.plist."
+            exit 0
+          fi
+          scripts/make-appcast.sh build/Dealer.zip
+
+      - name: Homebrew cask
+        run: |
+          scripts/update-cask.sh "$VERSION" build/Dealer.dmg > build/dealer.rb
+          {
+            echo "### Homebrew cask for Dealer $VERSION"
+            echo "Copy this to \`Casks/dealer.rb\` in [chantastic/homebrew-tap](https://github.com/chantastic/homebrew-tap):"
+            echo '```ruby'
+            cat build/dealer.rb
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          cat build/dealer.rb
 
       - name: Publish GitHub Release
         env:
@@ -71,7 +98,9 @@ jobs:
           else
             gh release create "$TAG" "${flags[@]}"
           fi
-          gh release upload "$TAG" build/Dealer.dmg build/Dealer.zip build/SHA256SUMS.txt --clobber
+          assets=(build/Dealer.dmg build/Dealer.zip build/SHA256SUMS.txt build/dealer.rb)
+          [[ -f build/appcast.xml ]] && assets+=(build/appcast.xml)
+          gh release upload "$TAG" "${assets[@]}" --clobber
 
       - name: Remove signing keychain
         if: always()
