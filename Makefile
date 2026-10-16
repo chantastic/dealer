@@ -1,7 +1,7 @@
 PREFIX ?= $(HOME)/Applications
 LSREGISTER := /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister
 
-.PHONY: build test app install uninstall clean
+.PHONY: build test app dmg zip package icons install uninstall clean
 
 build:
 	swift build
@@ -11,6 +11,22 @@ test:
 
 app:
 	./scripts/build-app.sh
+
+# Drag-to-Applications disk image of the current build/Dealer.app.
+dmg: app
+	./scripts/make-dmg.sh
+
+zip: app
+	rm -f build/Dealer.zip
+	ditto -c -k --sequesterRsrc --keepParent build/Dealer.app build/Dealer.zip
+
+# Everything a release ships: universal app, zip, dmg, checksums (notarized when credentials are set).
+package:
+	./scripts/package-release.sh
+
+# Regenerate Resources/AppIcon.iconset and the menu-bar PNGs from Assets/logo/*.svg.
+icons:
+	./scripts/generate-icons.sh
 
 install: app
 	mkdir -p "$(PREFIX)"
