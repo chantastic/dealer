@@ -30,13 +30,20 @@ jobs:
           osacompile -o "$RUNNER_TEMP/picker.scpt" "$RUNNER_TEMP/picker.applescript"
       # Best effort: depends on the runner's Automation (TCC) grants and Chrome's first-run state.
       - name: Open the profile picker in Chrome (experimental)
+        id: picker
         continue-on-error: true
-        timeout-minutes: 3
+        timeout-minutes: 4
         run: |
+          open -na "Google Chrome" --args --no-first-run --no-default-browser-check about:blank
+          sleep 10
           build/deal profiles --manage --rules "$RUNNER_TEMP/none.json"
           sleep 8
           osascript -e 'tell application "Google Chrome" to get {URL, title} of active tab of front window'
-          screencapture -x "$RUNNER_TEMP/profile-picker.png"
+      - name: Report experimental result
+        if: always()
+        run: |
+          echo "profile picker step outcome: ${{ steps.picker.outcome }}"
+          screencapture -x "$RUNNER_TEMP/profile-picker.png" || true
       - name: Upload profile picker screenshot
         if: always()
         continue-on-error: true
