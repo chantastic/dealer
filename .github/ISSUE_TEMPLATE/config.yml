@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Troubleshooting guide
+    url: https://github.com/chantastic/dealer#troubleshooting
+    about: Default browser, Automation permission, Gatekeeper, and links opening in the wrong profile.
