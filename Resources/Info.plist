@@ -42,7 +42,7 @@
 	<key>SUFeedURL</key>
 	<string>https://github.com/chantastic/dealer/releases/latest/download/appcast.xml</string>
 	<key>SUPublicEDKey</key>
-	<string></string>
+	<string>iNPa/bli2t74b2fQIQ8YYXI9wsPgxv760E5iDxRa238=</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
