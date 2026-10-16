@@ -36,6 +36,27 @@ jobs:
           scripts/verify-package.sh
           iconutil --convert iconset build/Dealer.app/Contents/Resources/AppIcon.icns --output build/AppIcon-from-icns.iconset
           ls -l build/AppIcon-from-icns.iconset
+      # Exercises make-appcast.sh with Sparkle's real sign_update and a throwaway key, then checks
+      # the signature independently with OpenSSL. Sparkle keys are base64 raw Ed25519 seeds.
+      - name: Appcast dry run (throwaway EdDSA key)
+        env:
+          VERSION: 0.0.0-ci
+          BUILD_NUMBER: ${{ github.run_number }}
+        run: |
+          openssl="$(brew --prefix openssl@3 2>/dev/null || (brew install --quiet openssl@3 >/dev/null && brew --prefix openssl@3))/bin/openssl"
+          keys="$RUNNER_TEMP/sparkle-test"
+          mkdir -p "$keys"
+          "$openssl" genpkey -algorithm ed25519 -outform DER -out "$keys/private.der"
+          "$openssl" pkey -inform DER -in "$keys/private.der" -pubout -outform DER -out "$keys/public.der"
+          SPARKLE_PRIVATE_KEY="$(tail -c 32 "$keys/private.der" | base64)" scripts/make-appcast.sh build/Dealer.zip
+          xmllint --noout build/appcast.xml
+          sed -n 's/.*sparkle:edSignature="\([^"]*\)".*/\1/p' build/appcast.xml | base64 --decode > "$keys/signature.bin"
+          "$openssl" pkeyutl -verify -pubin -keyform DER -inkey "$keys/public.der" -rawin -in build/Dealer.zip -sigfile "$keys/signature.bin"
+      - name: Cask dry run
+        run: |
+          scripts/update-cask.sh 0.0.0-ci build/Dealer.dmg > build/dealer.rb
+          ruby -c build/dealer.rb
+          grep -q "sha256 \"$(shasum -a 256 build/Dealer.dmg | cut -d' ' -f1)\"" build/dealer.rb
       - name: Upload package
         uses: actions/upload-artifact@v4
         with:
@@ -45,6 +66,8 @@ jobs:
             build/Dealer.zip
             build/SHA256SUMS.txt
             build/AppIcon-from-icns.iconset
+            build/appcast.xml
+            build/dealer.rb
       - name: Compile the Manage Profiles AppleScript against Chrome's dictionary
         run: |
           ls -d "/Applications/Google Chrome.app"
