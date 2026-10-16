@@ -24,7 +24,8 @@ zip: app
 package:
 	./scripts/package-release.sh
 
-# Regenerate Resources/AppIcon.iconset and the menu-bar PNGs from Assets/logo/*.svg.
+# Regenerate Resources/AppIcon.iconset (from Resources/Icon/AppIcon-1024.png) and the menu-bar
+# PNGs (from Assets/logo/menubar-template.svg).
 icons:
 	./scripts/generate-icons.sh
 

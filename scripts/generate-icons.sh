@@ -1,17 +1,20 @@
 #!/usr/bin/env bash
-# Regenerates the committed icon PNGs from the SVG sources in Assets/logo/.
+# Regenerates the committed icon PNGs.
 #
-#   Resources/AppIcon.iconset/*.png      every size iconutil needs for AppIcon.icns
-#   Resources/MenuBarIconTemplate*.png   the menu-bar template image (@1x and @2x)
+#   Resources/AppIcon.iconset/*.png      every size iconutil needs, downscaled from
+#                                        Resources/Icon/AppIcon-1024.png (the app icon's source of truth)
+#   Resources/MenuBarIconTemplate*.png   the menu-bar template image (@1x and @2x), rendered
+#                                        from Assets/logo/menubar-template.svg
 #
 # AppIcon.icns itself is built from the iconset by scripts/build-app.sh with iconutil (macOS).
+# To change the app icon artwork, run scripts/prepare-app-icon.sh on the new image first.
 #
 # Usage: scripts/generate-icons.sh [--previews <dir>]
-#   --previews <dir>  also write review images: the icon at 512px, the glyph at 16/32px,
-#                     enlarged pixel views, and light/dark menu-bar mockups.
+#   --previews <dir>  also write review images: the app icon at 512/128/32/16px, the same sizes
+#                     on light and dark backgrounds, and the menu-bar glyph previews.
 #
-# Requires rsvg-convert (macOS: `brew install librsvg`; Debian/Ubuntu: `apt install librsvg2-bin`).
-# --previews also needs ImageMagick's `convert`.
+# Requires ImageMagick (`brew install imagemagick` / `apt install imagemagick`) and
+# rsvg-convert (`brew install librsvg` / `apt install librsvg2-bin`).
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
@@ -21,72 +24,75 @@ if [[ "${1:-}" == "--previews" ]]; then
   previews="${2:?--previews needs a directory}"
 fi
 
+im() { if command -v magick >/dev/null; then magick "$@"; else convert "$@"; fi; }
 command -v rsvg-convert >/dev/null || { echo "generate-icons.sh: rsvg-convert not found" >&2; exit 1; }
+command -v magick >/dev/null || command -v convert >/dev/null || { echo "generate-icons.sh: ImageMagick not found" >&2; exit 1; }
 
-full=Assets/logo/app-icon.svg
-small=Assets/logo/app-icon-small.svg
+master=Resources/Icon/AppIcon-1024.png
 glyph=Assets/logo/menubar-template.svg
 iconset=Resources/AppIcon.iconset
 
-render() { # svg size out
-  rsvg-convert --width "$2" --height "$2" --keep-aspect-ratio "$1" --output "$3"
+[[ "$(im "$master" -format "%wx%h" info:)" == "1024x1024" ]] || { echo "generate-icons.sh: $master must be 1024x1024" >&2; exit 1; }
+
+# Downscale in linear light with Lanczos (gamma-correct, so thin gold highlights don't darken),
+# then sharpen slightly at small sizes where the resample softens edges.
+downscale() { # size out
+  local sharpen=()
+  (( $1 <= 64 )) && sharpen=(-unsharp 0x0.6+0.6+0.02)
+  im "$master" -colorspace RGB -filter Lanczos -resize "${1}x${1}" -colorspace sRGB "${sharpen[@]}" \
+    -strip "PNG32:$2"
 }
 
 rm -rf "$iconset"
 mkdir -p "$iconset"
-# Tiny sizes use the simplified artwork so the visor stays legible.
-render "$small" 16   "$iconset/icon_16x16.png"
-render "$small" 32   "$iconset/icon_16x16@2x.png"
-render "$small" 32   "$iconset/icon_32x32.png"
-render "$full"  64   "$iconset/icon_32x32@2x.png"
-render "$full"  128  "$iconset/icon_128x128.png"
-render "$full"  256  "$iconset/icon_128x128@2x.png"
-render "$full"  256  "$iconset/icon_256x256.png"
-render "$full"  512  "$iconset/icon_256x256@2x.png"
-render "$full"  512  "$iconset/icon_512x512.png"
-render "$full"  1024 "$iconset/icon_512x512@2x.png"
+for size in 16 32 128 256 512; do
+  downscale "$size" "$iconset/icon_${size}x${size}.png"
+  if (( size == 512 )); then
+    im "$master" -strip "PNG32:$iconset/icon_512x512@2x.png"
+  else
+    downscale "$(( size * 2 ))" "$iconset/icon_${size}x${size}@2x.png"
+  fi
+done
 
-render "$glyph" 16 Resources/MenuBarIconTemplate.png
-render "$glyph" 32 Resources/MenuBarIconTemplate@2x.png
+rsvg-convert --width 16 --height 16 "$glyph" --output Resources/MenuBarIconTemplate.png
+rsvg-convert --width 32 --height 32 "$glyph" --output Resources/MenuBarIconTemplate@2x.png
 
 echo "Wrote $iconset and Resources/MenuBarIconTemplate{,@2x}.png"
 
 [[ -z "$previews" ]] && exit 0
 
-command -v convert >/dev/null || { echo "generate-icons.sh: ImageMagick convert not found" >&2; exit 1; }
 mkdir -p "$previews"
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 
+# App icon at the requested review sizes, exactly as they ship in the iconset.
 cp "$iconset/icon_512x512.png" "$previews/app-icon-512.png"
-cp "$iconset/icon_16x16.png" "$previews/app-icon-16.png"
+cp "$iconset/icon_128x128.png" "$previews/app-icon-128.png"
 cp "$iconset/icon_32x32.png" "$previews/app-icon-32.png"
+cp "$iconset/icon_16x16.png" "$previews/app-icon-16.png"
+
+# Each size at actual pixels on light and dark backgrounds (how it sits in the Dock / Finder).
+for bg in '#f2f2f2' '#1e1e1e'; do
+  name=$([[ "$bg" == '#f2f2f2' ]] && echo light || echo dark)
+  im -size 760x560 "xc:$bg" \
+    "$iconset/icon_512x512.png" -geometry +24+24 -composite \
+    "$iconset/icon_128x128.png" -geometry +560+24 -composite \
+    "$iconset/icon_32x32.png" -geometry +608+184 -composite \
+    "$iconset/icon_16x16.png" -geometry +616+248 -composite \
+    "$previews/app-icon-sizes-$name.png"
+done
+# Small sizes enlarged 8x/4x (nearest-neighbor) to inspect individual pixels.
+im "$iconset/icon_16x16.png" -background '#f2f2f2' -flatten -filter point -resize 128x128 "$tmp/16.png"
+im "$iconset/icon_32x32.png" -background '#f2f2f2' -flatten -filter point -resize 128x128 "$tmp/32.png"
+im "$tmp/16.png" "$tmp/32.png" -background '#f2f2f2' -splice 8x0 +append "$previews/app-icon-16-32-enlarged.png"
+
+# Menu-bar glyph (unchanged artwork): files plus light/dark menu-bar mockups at @2x (44px bar).
 cp Resources/MenuBarIconTemplate.png "$previews/menubar-glyph-16.png"
 cp Resources/MenuBarIconTemplate@2x.png "$previews/menubar-glyph-32.png"
-
-# Pixel-level views of the small sizes (nearest-neighbor, 8x and 4x).
-convert Resources/MenuBarIconTemplate.png -background white -flatten -filter point -resize 128x128 "$previews/menubar-glyph-16-enlarged.png"
-convert Resources/MenuBarIconTemplate@2x.png -background white -flatten -filter point -resize 128x128 "$previews/menubar-glyph-32-enlarged.png"
-convert "$iconset/icon_16x16.png" -filter point -resize 128x128 "$previews/app-icon-16-enlarged.png"
-
-# Menu-bar mockups at @2x (a 22pt bar is 44px): template rendered black on light, white on dark.
 sed 's/fill="#000"/fill="#fff"/' "$glyph" > "$tmp/white.svg"
-render "$tmp/white.svg" 32 "$tmp/white32.png"
-convert -size 240x44 xc:'#ececec' Resources/MenuBarIconTemplate@2x.png -gravity center -composite "$tmp/light.png"
-convert -size 240x44 xc:'#2a2a2c' "$tmp/white32.png" -gravity center -composite "$tmp/dark.png"
-convert "$tmp/light.png" "$tmp/dark.png" -append +repage "$previews/menubar-mockup.png"
-
-# One-page overview.
-pad() { convert "$1" +repage -background '#f6f6f6' -flatten -bordercolor '#f6f6f6' -border 8 "$2"; }
-convert "$previews/app-icon-512.png" -resize 300x300 "$tmp/icon-300.png"
-pad "$tmp/icon-300.png" "$tmp/icon.png"
-pad "$previews/app-icon-16-enlarged.png" "$tmp/a.png"
-pad "$previews/menubar-glyph-16-enlarged.png" "$tmp/b.png"
-pad "$previews/menubar-glyph-32-enlarged.png" "$tmp/c.png"
-pad "$previews/menubar-mockup.png" "$tmp/d.png"
-convert "$tmp/a.png" "$tmp/b.png" "$tmp/c.png" -background '#f6f6f6' +append "$tmp/small.png"
-convert "$tmp/small.png" "$tmp/d.png" -background '#f6f6f6' -gravity center -append "$tmp/right.png"
-convert "$tmp/icon.png" "$tmp/right.png" -background '#f6f6f6' -gravity center +append \
-  -bordercolor '#f6f6f6' -border 8 "$previews/overview.png"
+rsvg-convert --width 32 --height 32 "$tmp/white.svg" --output "$tmp/white32.png"
+im -size 240x44 xc:'#ececec' Resources/MenuBarIconTemplate@2x.png -gravity center -composite "$tmp/light.png"
+im -size 240x44 xc:'#2a2a2c' "$tmp/white32.png" -gravity center -composite "$tmp/dark.png"
+im "$tmp/light.png" "$tmp/dark.png" -append +repage "$previews/menubar-mockup.png"
 
 echo "Wrote previews to $previews"
