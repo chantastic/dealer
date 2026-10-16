@@ -454,6 +454,17 @@ messages, launch command construction, and file watching. The AppKit target (`So
 `.github/workflows/ci.yml`. The interactive behavior hasn't been tested by hand on a Mac yet: the
 default-browser prompt, Launch Services delivering links, and Chrome switching profiles.
 
+The `macos` CI job also runs `make package` as a dry run and checks the result. It confirms the
+binaries are universal, `AppIcon.icns` was built with `iconutil`, the version is stamped, the
+signatures verify, and the mounted DMG contains `Dealer.app` and the Applications shortcut.
+Signing with a Developer ID and notarization have not been run, because they need secrets that
+aren't configured.
+
+For **Manage Profiles…**, CI compiles the AppleScript against the runner's Chrome. A live run got
+as far as macOS's Automation prompt, which named the process that launched `osascript`. That
+suggests the prompt names Dealer in normal use, but nobody could click it on a runner, so
+`chrome://profile-picker` opening in a tab is still unconfirmed.
+
 ## Roadmap
 
 - **Chrome extension for in-browser links (planned next).** A small Manifest V3 extension

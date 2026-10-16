@@ -51,32 +51,8 @@ jobs:
           build/deal profiles --manage --dry-run --rules "$RUNNER_TEMP/none.json" > "$RUNNER_TEMP/picker.applescript"
           cat "$RUNNER_TEMP/picker.applescript"
           osacompile -o "$RUNNER_TEMP/picker.scpt" "$RUNNER_TEMP/picker.applescript"
-      # Best effort: depends on the runner's Automation (TCC) grants and Chrome's first-run state.
-      - name: Open the profile picker in Chrome (experimental)
-        id: picker
-        continue-on-error: true
-        timeout-minutes: 4
-        run: |
-          # The runner's Chrome is quarantined, which makes Gatekeeper prompt on first launch.
-          sudo xattr -dr com.apple.quarantine "/Applications/Google Chrome.app" || true
-          open -na "Google Chrome" --args --no-first-run --no-default-browser-check about:blank
-          sleep 10
-          build/deal profiles --manage --rules "$RUNNER_TEMP/none.json"
-          sleep 8
-          osascript -e 'tell application "Google Chrome" to get {URL, title} of active tab of front window'
-      - name: Report experimental result
-        if: always()
-        run: |
-          echo "profile picker step outcome: ${{ steps.picker.outcome }}"
-          screencapture -x "$RUNNER_TEMP/profile-picker.png" || true
-      - name: Upload profile picker screenshot
-        if: always()
-        continue-on-error: true
-        uses: actions/upload-artifact@v4
-        with:
-          name: profile-picker-screenshot
-          path: ${{ runner.temp }}/profile-picker.png
-          if-no-files-found: ignore
+      # Actually running the script can't be tested here: macOS shows an Automation consent
+      # prompt ("… wants access to control Google Chrome") that nobody can click on a runner.
 
   linux:
     runs-on: ubuntu-latest
