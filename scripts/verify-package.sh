@@ -21,6 +21,12 @@ done
 [[ -f "$app/Contents/Resources/MenuBarIconTemplate.png" ]] || fail "menu-bar icon missing"
 [[ "$(plutil -extract CFBundleIconFile raw "$plist")" == "AppIcon" ]] || fail "CFBundleIconFile isn't AppIcon"
 
+sparkle="$app/Contents/Frameworks/Sparkle.framework"
+[[ -d "$sparkle" ]] || fail "Sparkle.framework isn't embedded"
+otool -l "$app/Contents/MacOS/Dealer" | grep -q "@executable_path/../Frameworks" || fail "Dealer has no rpath to Contents/Frameworks"
+otool -L "$app/Contents/MacOS/Dealer" | grep -q "@rpath/Sparkle.framework" || fail "Dealer doesn't link Sparkle.framework via @rpath"
+[[ "$(plutil -extract SUFeedURL raw "$plist")" == https://* ]] || fail "SUFeedURL is missing"
+
 version="$(plutil -extract CFBundleShortVersionString raw "$plist")"
 build="$(plutil -extract CFBundleVersion raw "$plist")"
 [[ -z "${EXPECT_VERSION:-}" || "$version" == "$EXPECT_VERSION" ]] || fail "version $version, expected $EXPECT_VERSION"

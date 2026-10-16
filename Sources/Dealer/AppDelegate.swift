@@ -23,7 +23,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        menuController = StatusMenuController(router: router)
+        menuController = StatusMenuController(router: router, updates: Updates())
     }
 
     /// Receives http/https URLs (`kAEGetURL` Apple Events) and HTML files opened with Dealer.
