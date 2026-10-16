@@ -36,6 +36,13 @@
 	<string>MIT License</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
+	<!-- Sparkle updates. SUFeedURL always resolves to the newest (non-prerelease) GitHub Release's
+	     appcast.xml. SUPublicEDKey is the public key printed by Sparkle's generate_keys; while it's
+	     empty, updates are disabled (see README, "Automatic updates"). -->
+	<key>SUFeedURL</key>
+	<string>https://github.com/chantastic/dealer/releases/latest/download/appcast.xml</string>
+	<key>SUPublicEDKey</key>
+	<string></string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>

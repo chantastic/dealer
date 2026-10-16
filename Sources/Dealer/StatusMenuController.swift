@@ -6,11 +6,13 @@ import DealerCore
 @MainActor
 final class StatusMenuController: NSObject, NSMenuDelegate {
     private let router: RoutingController
+    private let updates: Updates
     private let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
     private let menu = NSMenu()
 
-    init(router: RoutingController) {
+    init(router: RoutingController, updates: Updates) {
         self.router = router
+        self.updates = updates
         super.init()
 
         if let button = statusItem.button {
@@ -117,6 +119,11 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         menu.addItem(item("Reveal Rules in Finder", action: #selector(revealRules)))
         menu.addItem(item("Reload Rules", action: #selector(reloadRules), key: "r"))
         menu.addItem(.separator())
+        if updates.isAvailable {
+            let check = item("Check for Updates…", action: #selector(checkForUpdates))
+            check.isEnabled = updates.canCheckForUpdates
+            menu.addItem(check)
+        }
         menu.addItem(item("Quit Dealer", action: #selector(quit), key: "q"))
     }
 
@@ -227,6 +234,10 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         if let error = router.engine.loadError {
             Alerts.show(title: "Couldn't load rules", message: String(describing: error))
         }
+    }
+
+    @objc private func checkForUpdates() {
+        updates.checkForUpdates()
     }
 
     @objc private func quit() {

@@ -42,6 +42,21 @@ cp Resources/Info.plist "$PLIST"
 cp Resources/MenuBarIconTemplate.png Resources/MenuBarIconTemplate@2x.png "$APP/Contents/Resources/"
 iconutil --convert icns Resources/AppIcon.iconset --output "$APP/Contents/Resources/AppIcon.icns"
 
+# Sparkle.framework (from the SwiftPM binary target) goes in Contents/Frameworks, and the
+# executable needs a matching rpath to find it there.
+sparkle="$(find "$BIN_DIR" .build/artifacts -maxdepth 6 -name Sparkle.framework -type d -not -path "*/Versions/*" 2>/dev/null | head -1)"
+[[ -n "$sparkle" ]] || { echo "build-app.sh: Sparkle.framework not found under $BIN_DIR or .build/artifacts" >&2; exit 1; }
+mkdir -p "$APP/Contents/Frameworks"
+ditto "$sparkle" "$APP/Contents/Frameworks/Sparkle.framework"
+if ! otool -l "$APP/Contents/MacOS/Dealer" | grep -q "@executable_path/../Frameworks"; then
+  install_name_tool -add_rpath "@executable_path/../Frameworks" "$APP/Contents/MacOS/Dealer"
+fi
+
+# Optional: inject the Sparkle public key at build time instead of committing it to Info.plist.
+if [[ -n "${SPARKLE_PUBLIC_ED_KEY:-}" ]]; then
+  plutil -replace SUPublicEDKey -string "$SPARKLE_PUBLIC_ED_KEY" "$PLIST"
+fi
+
 if [[ -n "${VERSION:-}" ]]; then
   short="${VERSION#v}"
   short="${short%%-*}"
@@ -63,8 +78,17 @@ codesign_flags=(--force --sign "$SIGN_IDENTITY")
 if [[ "$SIGN_IDENTITY" != "-" ]]; then
   codesign_flags+=(--options runtime --timestamp)
 fi
-# Sign nested code before the bundle that seals it.
+# Sign nested code inside-out before the bundle that seals it. Sparkle's helpers are re-signed
+# with our identity, following Sparkle's documented order.
+fw="$APP/Contents/Frameworks/Sparkle.framework/Versions/B"
+codesign "${codesign_flags[@]}" "$fw/XPCServices/Installer.xpc"
+codesign "${codesign_flags[@]}" --preserve-metadata=entitlements "$fw/XPCServices/Downloader.xpc"
+codesign "${codesign_flags[@]}" "$fw/Autoupdate"
+codesign "${codesign_flags[@]}" "$fw/Updater.app"
+codesign "${codesign_flags[@]}" "$APP/Contents/Frameworks/Sparkle.framework"
 codesign "${codesign_flags[@]}" "$APP/Contents/MacOS/deal"
 codesign "${codesign_flags[@]}" --entitlements Resources/Dealer.entitlements "$APP"
 
-echo "Built $APP $(plutil -extract CFBundleShortVersionString raw "$PLIST") ($(plutil -extract CFBundleVersion raw "$PLIST")), signed with: $SIGN_IDENTITY"
+updates="disabled (no SUPublicEDKey)"
+[[ -n "$(plutil -extract SUPublicEDKey raw "$PLIST" 2>/dev/null)" ]] && updates="enabled"
+echo "Built $APP $(plutil -extract CFBundleShortVersionString raw "$PLIST") ($(plutil -extract CFBundleVersion raw "$PLIST")), signed with: $SIGN_IDENTITY, Sparkle updates: $updates"
