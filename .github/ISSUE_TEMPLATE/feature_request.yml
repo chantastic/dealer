@@ -1,0 +1,28 @@
+name: Feature request
+description: Suggest an improvement or a new capability.
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem would this solve?
+      description: Describe the situation you're in, not just the solution you have in mind.
+      placeholder: Links from Outlook arrive wrapped in SafeLinks URLs, so my rules never match.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What would you like Dealer to do?
+      placeholder: Unwrap SafeLinks (and similar redirectors) before matching rules.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Workarounds or alternatives you've tried
+  - type: textarea
+    id: context
+    attributes:
+      label: Anything else?
+      description: Example URLs (redacted), rules, screenshots, or links to similar tools.

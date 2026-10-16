@@ -1,0 +1,68 @@
+name: Bug report
+description: A link opened in the wrong place, Dealer misbehaved, or something didn't work as documented.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting! Please check [Troubleshooting](https://github.com/chantastic/dealer#troubleshooting) first.
+        **Don't paste private URLs or account emails**; replace them with placeholders like `https://intranet.example.com/...`.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What you did, what you expected, and what happened instead.
+      placeholder: Clicked a Jira link in Slack; expected the Work profile, got Personal.
+    validations:
+      required: true
+  - type: textarea
+    id: route
+    attributes:
+      label: "`deal route` output"
+      description: |
+        For routing problems, run `deal route '<the URL>'` (or `/Applications/Dealer.app/Contents/MacOS/deal route '<the URL>'`) and paste the output.
+      render: text
+  - type: textarea
+    id: rules
+    attributes:
+      label: Relevant rules
+      description: The parts of `~/.config/dealer/rules.json` involved (redact anything private).
+      render: jsonc
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: |
+        Optional. Reproduce the problem while running:
+        `log stream --predicate 'subsystem == "dev.chan.dealer"' --info`
+      render: text
+  - type: input
+    id: dealer-version
+    attributes:
+      label: Dealer version
+      description: Shown at the top of Dealer's menu.
+      placeholder: "0.1.0"
+    validations:
+      required: true
+  - type: input
+    id: macos-version
+    attributes:
+      label: macOS version
+      placeholder: "macOS 15.1 (Apple silicon)"
+    validations:
+      required: true
+  - type: input
+    id: browser
+    attributes:
+      label: Browser and version
+      placeholder: "Google Chrome 141"
+  - type: dropdown
+    id: install
+    attributes:
+      label: How did you install Dealer?
+      options:
+        - DMG from GitHub Releases
+        - Homebrew cask
+        - Built from source
+    validations:
+      required: true

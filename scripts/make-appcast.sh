@@ -33,7 +33,8 @@ if [[ -z "${SPARKLE_BIN:-}" ]]; then
   tools="$(mktemp -d)"
   curl -fsSL "https://github.com/sparkle-project/Sparkle/releases/download/$SPARKLE_VERSION/Sparkle-$SPARKLE_VERSION.tar.xz" \
     | tar -xJf - -C "$tools"
-  SPARKLE_BIN="$(dirname "$(find "$tools" -name sign_update -type f | head -1)")"
+  # The tarball also ships bin/old_dsa_scripts/sign_update (legacy DSA); match the real tool.
+  SPARKLE_BIN="$(dirname "$(find "$tools" -path "*/bin/sign_update" -type f | head -1)")"
 fi
 
 # sign_update prints: sparkle:edSignature="…" length="…"
