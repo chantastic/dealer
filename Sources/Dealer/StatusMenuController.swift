@@ -20,7 +20,7 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
             // app bundle (e.g. `swift run Dealer`) has no resources, so fall back to a title.
             if let image = NSImage(named: "MenuBarIconTemplate") {
                 image.isTemplate = true
-                image.size = NSSize(width: 16, height: 16)
+                image.size = NSSize(width: 18, height: 18)
                 image.accessibilityDescription = "Dealer"
                 button.image = image
             } else {

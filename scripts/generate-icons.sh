@@ -11,7 +11,9 @@
 #
 # Usage: scripts/generate-icons.sh [--previews <dir>]
 #   --previews <dir>  also write review images: the app icon at 512/128/32/16px, the same sizes
-#                     on light and dark backgrounds, and the menu-bar glyph previews.
+#                     on light and dark backgrounds, and menu-bar glyph previews for the shipped
+#                     glyph and every SVG in Assets/logo/menubar-concepts/ (menubar-concepts.png
+#                     compares them).
 #
 # Requires ImageMagick (`brew install imagemagick` / `apt install imagemagick`) and
 # rsvg-convert (`brew install librsvg` / `apt install librsvg2-bin`).
@@ -54,8 +56,9 @@ for size in 16 32 128 256 512; do
   fi
 done
 
-rsvg-convert --width 16 --height 16 "$glyph" --output Resources/MenuBarIconTemplate.png
-rsvg-convert --width 32 --height 32 "$glyph" --output Resources/MenuBarIconTemplate@2x.png
+# Menu-bar glyph: an 18pt template image (18px @1x, 36px @2x), the usual menu-bar icon size.
+rsvg-convert --width 18 --height 18 "$glyph" --output Resources/MenuBarIconTemplate.png
+rsvg-convert --width 36 --height 36 "$glyph" --output Resources/MenuBarIconTemplate@2x.png
 
 echo "Wrote $iconset and Resources/MenuBarIconTemplate{,@2x}.png"
 
@@ -86,13 +89,40 @@ im "$iconset/icon_16x16.png" -background '#f2f2f2' -flatten -filter point -resiz
 im "$iconset/icon_32x32.png" -background '#f2f2f2' -flatten -filter point -resize 128x128 "$tmp/32.png"
 im "$tmp/16.png" "$tmp/32.png" -background '#f2f2f2' -splice 8x0 +append "$previews/app-icon-16-32-enlarged.png"
 
-# Menu-bar glyph (unchanged artwork): files plus light/dark menu-bar mockups at @2x (44px bar).
-cp Resources/MenuBarIconTemplate.png "$previews/menubar-glyph-16.png"
-cp Resources/MenuBarIconTemplate@2x.png "$previews/menubar-glyph-32.png"
-sed 's/fill="#000"/fill="#fff"/' "$glyph" > "$tmp/white.svg"
-rsvg-convert --width 32 --height 32 "$tmp/white.svg" --output "$tmp/white32.png"
-im -size 240x44 xc:'#ececec' Resources/MenuBarIconTemplate@2x.png -gravity center -composite "$tmp/light.png"
-im -size 240x44 xc:'#2a2a2c' "$tmp/white32.png" -gravity center -composite "$tmp/dark.png"
-im "$tmp/light.png" "$tmp/dark.png" -append +repage "$previews/menubar-mockup.png"
+# Menu-bar glyph previews for one SVG: 16px, 18px, 36px (18@2x), each enlarged with
+# nearest-neighbor, and light/dark menu-bar mockups at @2x (a 22pt bar is 44px tall). Glyph
+# SVGs draw with currentColor and set color="#000", so swapping that renders the dark version.
+glyph_previews() { # svg name-prefix
+  local svg="$1" prefix="$2"
+  rsvg-convert --width 16 --height 16 "$svg" --output "$previews/$prefix-16.png"
+  rsvg-convert --width 18 --height 18 "$svg" --output "$previews/$prefix-18.png"
+  rsvg-convert --width 36 --height 36 "$svg" --output "$previews/$prefix-18@2x.png"
+  sed 's/color="#000"/color="#fff"/' "$svg" > "$tmp/white.svg"
+  rsvg-convert --width 36 --height 36 "$tmp/white.svg" --output "$tmp/white36.png"
+  im -size 240x44 xc:'#ececec' "$previews/$prefix-18@2x.png" -gravity center -composite "$tmp/light.png"
+  im -size 240x44 xc:'#2a2a2c' "$tmp/white36.png" -gravity center -composite "$tmp/dark.png"
+  im "$tmp/light.png" "$tmp/dark.png" -append +repage "$previews/$prefix-mockup.png"
+  im "$previews/$prefix-16.png" -background white -flatten -filter point -resize 128x128 "$tmp/e16.png"
+  im "$previews/$prefix-18.png" -background white -flatten -filter point -resize 144x144 "$tmp/e18.png"
+  im "$previews/$prefix-18@2x.png" -background white -flatten -filter point -resize 144x144 "$tmp/e36.png"
+  im "$tmp/e16.png" "$tmp/e18.png" "$tmp/e36.png" -background '#f6f6f6' -gravity center \
+    -bordercolor '#f6f6f6' -border 6 +append +repage "$previews/$prefix-enlarged.png"
+}
+
+glyph_previews "$glyph" menubar-glyph
+
+# Every concept in Assets/logo/menubar-concepts, plus one comparison sheet.
+rows=()
+for svg in Assets/logo/menubar-concepts/*.svg; do
+  [[ -e "$svg" ]] || continue
+  name="menubar-concept-$(basename "$svg" .svg)"
+  glyph_previews "$svg" "$name"
+  im "$previews/$name-enlarged.png" "$previews/$name-mockup.png" -background '#f6f6f6' -gravity center \
+    -bordercolor '#f6f6f6' -border 6 +append +repage "$tmp/row-$name.png"
+  rows+=("$tmp/row-$name.png")
+done
+if (( ${#rows[@]} )); then
+  im "${rows[@]}" -background '#f6f6f6' -append +repage "$previews/menubar-concepts.png"
+fi
 
 echo "Wrote previews to $previews"
