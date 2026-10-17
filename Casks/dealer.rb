@@ -29,4 +29,15 @@ cask "dealer" do
     "~/Library/HTTPStorages/dev.chan.dealer",
     "~/Library/Preferences/dev.chan.dealer.plist",
   ]
+
+  # Remove once releases are signed with a Developer ID and notarized.
+  caveats <<~EOS
+    Dealer isn't notarized by Apple, so macOS Gatekeeper blocks its first launch.
+    After installing, clear the quarantine flag:
+
+      xattr -dr com.apple.quarantine #{appdir}/Dealer.app
+
+    or open System Settings > Privacy & Security and click "Open Anyway".
+    (Homebrew 6.0 removed `brew install --cask --no-quarantine`; it only works on older versions.)
+  EOS
 end

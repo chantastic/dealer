@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18" color="#000">
+  <!-- Concept A: a single upright card with a spade pip. -->
+  <rect x="3.8" y="1.8" width="10.4" height="14.4" rx="2.4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+  <path fill="currentColor" d="M9 5.4 C7.5 7.1 5.7 8.2 5.7 10.1 C5.7 11.3 6.6 12.1 7.6 12.1 C8.1 12.1 8.5 11.9 8.8 11.6 L8.3 13.3 H9.7 L9.2 11.6 C9.5 11.9 9.9 12.1 10.4 12.1 C11.4 12.1 12.3 11.3 12.3 10.1 C12.3 8.2 10.5 7.1 9 5.4 Z"/>
+</svg>

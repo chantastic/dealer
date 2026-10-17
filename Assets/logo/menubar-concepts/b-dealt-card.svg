@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18" color="#000">
+  <!-- Concept B: a card being dealt, tilted, with motion lines trailing behind it. -->
+  <g transform="rotate(-14 10.6 9)">
+    <rect x="6" y="2.6" width="9.4" height="12.8" rx="2.2" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+    <path fill="currentColor" d="M10.7 6.3 L12.8 9 L10.7 11.7 L8.6 9 Z"/>
+  </g>
+  <path d="M1.4 7.6 H4.3 M2.4 10.9 H4.8" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+</svg>
